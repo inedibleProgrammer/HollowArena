@@ -4,6 +4,8 @@ Build.Combined = "Combined.lua"
 MAP_VERSION = "Alpha"
 
 Build.SourceFiles = {
+  "HollowArena.lua",
+  "Editor.lua",
   "../Wc3Tools/Commands.lua",
   "../Wc3Tools/TestFramework.lua",
   "../Wc3Tools/RealWc3Api.lua",
@@ -12,6 +14,9 @@ Build.SourceFiles = {
   "../Wc3Tools/Clock.lua",
   "../Wc3Tools/Players.lua",
   "../Wc3Tools/Logging.lua",
+  "../Wc3Tools/DebugTools.lua",
+  "../Wc3Tools/UnitManager.lua",
+  "../Wc3Tools/Colors.lua",
   "LaunchLua.lua", -- Must be last
 }
 

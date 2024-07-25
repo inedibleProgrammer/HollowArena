@@ -6,10 +6,11 @@ function map.UnitTests()
 end
 
 function map.LaunchLua()
-  print("Map Start")
+  -- print("Map Start")
   -- map.UnitTests()
-  map.Game_Start()
-  print("Map End")
+  -- map.Game_Start()
+  xpcall(map.HollowArena_Initialize, print)
+  -- print("Map End")
 end
 
 map.UnitTests()
