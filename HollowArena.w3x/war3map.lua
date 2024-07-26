@@ -2,6 +2,7 @@ gg_snd_Warning = nil
 gg_snd_Tension = nil
 gg_trg_Melee_Initialization = nil
 gg_trg_LaunchLua = nil
+gg_rct_startRect = nil
 function InitGlobals()
 end
 
@@ -100,6 +101,12 @@ CreatePlayerBuildings()
 CreatePlayerUnits()
 end
 
+function CreateRegions()
+local we
+
+gg_rct_startRect = Rect(-2816.0, 5472.0, -1408.0, 6880.0)
+end
+
 map = {}
 function map.HollowArena_Initialize()
   local game = {}
@@ -123,14 +130,168 @@ function map.HollowArena_Initialize()
   gameStatusLog.type = logging.types.INFO
   gameStatusLog.message = "Game Start"
   logging.Write(gameStatusLog)
+
+
+  local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 end
 
 function map.Editor_Create()
   local editor = {}
 
+  editor.startRect = gg_rct_startRect
+
   return editor
 end
 
+function map.Wagons_Create(wc3api, players, commands, logging, editor)
+  local wagons = {}
+  wagons.list = {}
+
+  local wagonLog = {}
+  wagonLog.type = logging.types.INFO
+
+  local startRectInfo = {}
+  startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
+  startRectInfo.centery = wc3api.GetRectCenterY(editor.startRect)
+
+  function wagons.WagonBuildingAction()
+    local function WagonBuildingAction2()
+      -- GetTriggerUnit() returns the building instead of the builder BUG
+      -- https://www.hiveworkshop.com/threads/how-to-get-building-unit.274883/
+      local theBuilding = wc3api.GetConstructingStructure()
+      local thePlayer = wc3api.GetTriggerPlayer()
+
+      for _,wagonData in pairs(wagons.list) do
+        if(wagonData.built == true) then return end
+        if(thePlayer == wagonData.playerref) then
+          if(wc3api.IsUnitInRange(wagonData.unit, theBuilding, 120)) then
+            local baseID = wc3api.GetUnitTypeId(theBuilding)
+            local basex = wc3api.GetUnitX(theBuilding)
+            local basey = wc3api.GetUnitY(theBuilding)
+            local baseface = wc3api.GetUnitFacing(theBuilding)
+            wc3api.RemoveUnit(theBuilding)
+            wc3api.RemoveUnit(wagonData.unit)
+            wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
+            wagonData.built = true
+          end
+        end
+      end
+    end
+    xpcall(WagonBuildingAction2, print)
+  end
+
+  local finishBuildingTrigger = wc3api.CreateTrigger()
+  wc3api.TriggerAddAction(finishBuildingTrigger, wagons.WagonBuildingAction)
+
+  for _, player in pairs(players.list) do
+    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
+      local wagonData = {}
+      wagonData.built = false
+
+      wagonData.playerref = player.ref
+
+      wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
+
+      wagonData.unit = wc3api.CreateUnit(player.ref,
+                                         wc3api.FourCC("h000"),
+                                         startRectInfo.centerx,
+                                         startRectInfo.centery,
+                                         0.00)
+
+      wc3api.SetUnitMoveSpeed(wagonData.unit, 3000)
+      wc3api.UnitAddAbility(wagonData.unit, wc3api.FourCC("AEbl")) -- blink
+      wc3api.SetUnitAbilityLevel(wagonData.unit, wc3api.FourCC("AEbl"), 3)
+      wc3api.BlzSetUnitMaxMana(wagonData.unit, 500)
+      wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA, 300)
+      wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA_REGENERATION, 5)
+      wc3api.BlzSetUnitName(wagonData.unit, player.name)
+      table.insert(wagons.list, wagonData)
+    end
+  end
+
+
+
+
+  return wagons
+end
+
+
+
+function map.Wagons_Tests(testFramework)
+  testFramework.Suites.WagonsSuite = {}
+  testFramework.Suites.WagonsSuite.Tests = {}
+  local tsc = testFramework.Suites.WagonsSuite
+
+  local wc3api = {}
+  wc3api.constants = {}
+  -- wc3api.constants = map.RealWc3Api_Create().constants
+  function wc3api.GetRectCenterX() end
+  function wc3api.GetRectCenterY() end
+  function wc3api.CreateTrigger() end
+  function wc3api.TriggerAddAction() end
+  function wc3api.TriggerRegisterPlayerUnitEvent() end
+  function wc3api.FourCC() end
+  function wc3api.CreateUnit() end
+  function wc3api.UnitAddAbility() end
+  function wc3api.SetUnitAbilityLevel() end
+  function wc3api.BlzSetUnitMaxMana() end
+  function wc3api.BlzSetUnitRealField() end
+  function wc3api.BlzSetUnitName() end
+  function wc3api.GetConstructingStructure() end
+  function wc3api.GetTriggerPlayer() return "p1ref" end
+  function wc3api.IsUnitInRange() return true end
+  function wc3api.GetUnitTypeId() end
+  function wc3api.GetUnitX() end
+  function wc3api.GetUnitY() end
+  function wc3api.GetUnitFacing() end
+  function wc3api.RemoveUnit() end
+  function wc3api.SetUnitMoveSpeed() end
+
+  local players = {}
+  players.list = {}
+  local p1 = {}
+  p1.ref = "p1ref"
+  local p2 = {}
+  p2.ref = "p2ref"
+  table.insert(players.list, p1)
+  table.insert(players.list, p2)
+
+  local commands = {}
+
+  local logging = {}
+  logging.types = {}
+
+  local editor = {}
+
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.WagonsCreated()
+    -- p1.playerslotstate = wc3api.constants.PLAYER_SLOT_STATE_PLAYING
+    -- p2.playerslotstate = wc3api.constants.PLAYER_SLOT_STATE_PLAYING
+    assert(p1.ref == "p1ref")
+    wc3api.constants.MAP_CONTROL_USER = "user"
+    wc3api.constants.PLAYER_SLOT_STATE_PLAYING = "playing"
+
+    p1.playerslotstate = "playing"
+    p2.playerslotstate = "playing"
+    p1.mapcontrol = "user"
+    p2.mapcontrol = "comp"
+    local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
+
+    local testWagon
+    for _,wagonData in pairs(wagons.list) do
+      if(wagonData.playerref == "p1ref") then
+        testWagon = wagonData
+      end
+    end
+
+    wagons.WagonBuildingAction()
+
+    assert(testWagon.built == true)
+  end
+end
 function map.Commands_Create(wc3api)
   local commands = {}
   commands.list = {}
@@ -256,6 +417,17 @@ function map.RealWc3Api_Create()
 
   realWc3Api.constants.PLAYER_STATE_RESOURCE_GOLD = PLAYER_STATE_RESOURCE_GOLD
   realWc3Api.constants.PLAYER_STATE_RESOURCE_LUMBER = PLAYER_STATE_RESOURCE_LUMBER
+
+  realWc3Api.constants.PLAYER_SLOT_STATE_EMPTY = PLAYER_SLOT_STATE_EMPTY
+  realWc3Api.constants.PLAYER_SLOT_STATE_PLAYING = PLAYER_SLOT_STATE_PLAYING
+  realWc3Api.constants.PLAYER_SLOT_STATE_LEFT = PLAYER_SLOT_STATE_LEFT
+
+  realWc3Api.constants.MAP_CONTROL_USER = MAP_CONTROL_USER
+  realWc3Api.constants.MAP_CONTROL_COMPUTER = MAP_CONTROL_COMPU
+  realWc3Api.constants.MAP_CONTROL_RESCUABLE = MAP_CONTROL_RESCU
+  realWc3Api.constants.MAP_CONTROL_NEUTRAL = MAP_CONTROL_NEUTR
+  realWc3Api.constants.MAP_CONTROL_CREEP = MAP_CONTROL_CREEP
+  realWc3Api.constants.MAP_CONTROL_NONE = MAP_CONTROL_NONE
 
   function realWc3Api.BJDebugMsg(msg)
     return BJDebugMsg(msg)
@@ -457,12 +629,32 @@ function map.RealWc3Api_Create()
     return CreateUnit(id, unitid, x, y, face)
   end
 
+  function realWc3Api.GetUnitAbilityLevel(whichUnit, abilcode)
+    return GetUnitAbilityLevel(whichUnit, abilcode)
+  end
+
+  function realWc3Api.DecUnitAbilityLevel(whichUnit, abilcode)
+    return DecUnitAbilityLevel(whichUnit, abilcode)
+  end
+
+  function realWc3Api.IncUnitAbilityLevel(whichUnit, abilcode)
+    return IncUnitAbilityLevel(whichUnit, abilcode)
+  end
+
+  function realWc3Api.SetUnitAbilityLevel(whichUnit, abilcode, level)
+    return SetUnitAbilityLevel(whichUnit, abilcode, level)
+  end
+
   function realWc3Api.UnitAddAbility(whichUnit, abilityId)
     return UnitAddAbility(whichUnit, abilityId)
   end
 
   function realWc3Api.UnitRemoveAbility(whichUnit, abilityId)
     return UnitRemoveAbility(whichUnit, abilityId)
+  end
+
+  function realWc3Api.UnitMakeAbilityPermanent(whichUnit, permanent, abilityId)
+    return UnitMakeAbilityPermanent(whichUnit, permanent, abilityId)
   end
 
   function realWc3Api.BlzGetUnitMaxMana(whichUnit)
@@ -1003,7 +1195,6 @@ function map.Players_Tests(testFramework)
   end
 
   function tsc.Tests.AddAuthenticatedPlayers()
-    -- function map.Players_Create(wc3api, commands, colors, authenticatedNames)
     local firstTime = true
     function wc3api.GetPlayerName(player)
       if firstTime then
@@ -1328,6 +1519,7 @@ end
 
 function map.UnitTests()
   local testFramework = map.TestFramework_Create()
+  map.Wagons_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 
@@ -1492,6 +1684,7 @@ SetAmbientDaySound("BlackCitadelDay")
 SetAmbientNightSound("BlackCitadelNight")
 SetMapMusic("Music", true, 0)
 InitSounds()
+CreateRegions()
 CreateAllItems()
 CreateAllUnits()
 InitBlizzard()

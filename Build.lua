@@ -6,6 +6,7 @@ MAP_VERSION = "Alpha"
 Build.SourceFiles = {
   "HollowArena.lua",
   "Editor.lua",
+  "Wagons.lua",
   "../Wc3Tools/Commands.lua",
   "../Wc3Tools/TestFramework.lua",
   "../Wc3Tools/RealWc3Api.lua",

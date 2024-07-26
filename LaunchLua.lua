@@ -2,6 +2,7 @@
 
 function map.UnitTests()
   local testFramework = map.TestFramework_Create()
+  map.Wagons_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 

@@ -20,5 +20,8 @@ function map.HollowArena_Initialize()
   gameStatusLog.type = logging.types.INFO
   gameStatusLog.message = "Game Start"
   logging.Write(gameStatusLog)
+
+
+  local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 end
 
