@@ -3,6 +3,7 @@ gg_snd_Warning = nil
 gg_snd_Tension = nil
 gg_trg_LaunchLua = nil
 gg_trg_Melee_Initialization = nil
+gg_rct_wormwoodRect = nil
 function InitGlobals()
 end
 
@@ -106,15 +107,20 @@ function CreateRegions()
 local we
 
 gg_rct_startRect = Rect(-2816.0, 5472.0, -1408.0, 6880.0)
+gg_rct_wormwoodRect = Rect(4832.0, 8832.0, 6400.0, 9504.0)
 end
 
 map = {}
 map.version = "0.0.0"
-map.commit = "29055fa8253274a2eea7b5b843af53222f5c47e9"
+map.commit = "235ec2da1749ae53c7d67120bf3d6054ebdd2ba5"
 function map.Editor_Create()
   local editor = {}
 
   editor.startRect = gg_rct_startRect
+  editor.wormwoodRect = gg_rct_wormwoodRect
+  editor.wormwoodPlayerID = 20
+
+
 
   return editor
 end
@@ -154,6 +160,7 @@ function map.HollowArena_Initialize()
 
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
+  local wormwood = map.Wormwood_Create(wc3api, editor)
 end
 
 function map.Wagons_Create(wc3api, players, commands, logging, editor)
@@ -345,6 +352,32 @@ function map.StartingResources_Create(wc3api, players)
   wc3api.DestroyTrigger(startingResourcesTrigger)
 
   return startingResources
+end
+function map.Wormwood_Create(wc3api, editor)
+  local wormwood = {}
+
+  local wormwoodRectInfo = {}
+  wormwoodRectInfo.centerx = wc3api.GetRectCenterX(editor.wormwoodRect)
+  wormwoodRectInfo.centery = wc3api.GetRectCenterY(editor.wormwoodRect)
+
+  wormwood.unit = wc3api.CreateUnit(wc3api.Player(editor.wormwoodPlayerID),
+                                    wc3api.FourCC("nbal"),
+                                    wormwoodRectInfo.centerx,
+                                    wormwoodRectInfo.centery,
+                                    270.0)
+
+
+  wc3api.BlzSetUnitName(wormwood.unit, "Wormwood")
+  wc3api.BlzSetUnitMaxHP(wormwood.unit, 100000)
+  wc3api.SetUnitState(wormwood.unit, UNIT_STATE_LIFE, 100000.0)
+  wc3api.BlzSetUnitRealField(wormwood.unit, wc3api.constants.UNIT_RF_HIT_POINTS_REGENERATION_RATE, 10)
+  wc3api.BlzSetUnitBaseDamage(wormwood.unit, 500, wc3api.constants.WEAPON_INDEX_GROUND)
+  wc3api.BlzSetUnitBaseDamage(wormwood.unit, 500, wc3api.constants.WEAPON_INDEX_AIR)
+  wc3api.BlzSetUnitArmor(wormwood.unit, 150)
+  wc3api.SetUnitScale(wormwood.unit, 2.0, 0.0, 0.0)
+  wc3api.SetUnitVertexColor(wormwood.unit, 100, 100, 100, 255)
+
+  return wormwood
 end
 function map.Commands_Create(wc3api)
   local commands = {}
@@ -1283,6 +1316,9 @@ function map.RealWc3Api_Create()
   realWc3Api.constants.EXACT_MATCH = true
   realWc3Api.constants.NO_EXACT_MATCH = false
 
+  realWc3Api.constants.WEAPON_INDEX_GROUND = 0
+  realWc3Api.constants.WEAPON_INDEX_AIR = 1
+
   realWc3Api.constants.bj_FORCE_ALL_PLAYERS = nil
   realWc3Api.constants.EVENT_PLAYER_LEAVE = EVENT_PLAYER_LEAVE
 
@@ -1538,6 +1574,14 @@ function map.RealWc3Api_Create()
     return BlzGetUnitStringField(whichUnit, whichField)
   end
 
+  function realWc3Api.SetUnitState(whichUnit, whichUnitState, newVal)
+    return SetUnitState(whichUnit, whichUnitState, newVal)
+  end
+
+  function realWc3Api.GetUnitState(whichUnit, whichUnitState)
+    return GetUnitState(whichUnit, whichUnitState)
+  end
+
   function realWc3Api.BlzSetUnitBooleanField(whichUnit, whichField, value)
     return BlzSetUnitBooleanField(whichUnit, whichField, value)
   end
@@ -1558,8 +1602,192 @@ function map.RealWc3Api_Create()
     return SetUnitState(whichUnit, whichUnitState, newVal)
   end
 
+  function realWc3Api.BlzGetUnitBaseDamage(whichUnit, weaponIndex)
+    return BlzGetUnitBaseDamage(whichUnit, weaponIndex)
+  end
+
+  function realWc3Api.BlzGetUnitArmor(whichUnit)
+    return BlzGetUnitArmor(whichUnit)
+  end
+
+  function realWc3Api.BlzSetUnitArmor(whichUnit, armorAmount)
+    return BlzSetUnitArmor(whichUnit, armorAmount)
+  end
+
+  function realWc3Api.BlzUnitHideAbility(whichUnit, abilId, flag)
+    return BlzUnitHideAbility(whichUnit, abilId, flag)
+  end
+
+  function realWc3Api.BlzUnitDisableAbility(whichUnit, abilId, flag, hideUI)
+    return BlzUnitDisableAbility(whichUnit, abilId, flag, hideUI)
+  end
+
+  function realWc3Api.BlzUnitCancelTimedLife(whichUnit)
+    return BlzUnitCancelTimedLife(whichUnit)
+  end
+
+  function realWc3Api.BlzIsUnitSelectable(whichUnit)
+    return BlzIsUnitSelectable(whichUnit)
+  end
+
+  function realWc3Api.BlzIsUnitInvulnerable(whichUnit)
+    return BlzIsUnitInvulnerable(whichUnit)
+  end
+
+  function realWc3Api.BlzUnitInterruptAttack(whichUnit)
+    return BlzUnitInterruptAttack(whichUnit)
+  end
+
+  function realWc3Api.BlzGetUnitCollisionSize(whichUnit)
+    return BlzGetUnitCollisionSize(whichUnit)
+  end
+
+  function realWc3Api.BlzGetAbilityManaCost(abilId, level)
+    return BlzGetAbilityManaCost(abilId, level)
+  end
+
+  function realWc3Api.BlzGetAbilityCooldown(abilId, level)
+    return BlzGetAbilityCooldown(abilId, level)
+  end
+
+  function realWc3Api.BlzSetUnitAbilityCooldown(whichUnit, abilId, level, cooldown)
+    return BlzSetUnitAbilityCooldown(whichUnit, abilId, level, cooldown)
+  end
+
+  function realWc3Api.BlzGetUnitAbilityCooldown(whichUnit, abilId, level)
+    return BlzGetUnitAbilityCooldown(whichUnit, abilId, level)
+  end
+
+  function realWc3Api.BlzGetUnitAbilityCooldownRemaining(whichUnit, abilId)
+    return BlzGetUnitAbilityCooldownRemaining(whichUnit, abilId)
+  end
+
+  function realWc3Api.BlzEndUnitAbilityCooldown(whichUnit, abilCode)
+    return BlzEndUnitAbilityCooldown(whichUnit, abilCode)
+  end
+
+  function realWc3Api.BlzStartUnitAbilityCooldown(whichUnit, abilCode, cooldown)
+    return BlzStartUnitAbilityCooldown(whichUnit, abilCode, cooldown)
+  end
+
+  function realWc3Api.BlzGetUnitAbilityManaCost(whichUnit, abilId, level)
+    return BlzGetUnitAbilityManaCost(whichUnit, abilId, level)
+  end
+
+  function realWc3Api.BlzSetUnitAbilityManaCost(whichUnit, abilId, level, manaCost)
+    return BlzSetUnitAbilityManaCost(whichUnit, abilId, level, manaCost)
+  end
+
+  function realWc3Api.BlzSetUnitBaseDamage(whichUnit, baseDamage, weaponIndex)
+    return BlzSetUnitBaseDamage(whichUnit, baseDamage, weaponIndex)
+  end
+
   function realWc3Api.SetUnitPosition(whichUnit, newX, newY)
     return SetUnitPosition(whichUnit, newX, newY)
+  end
+
+  function realWc3Api.SetUnitScale(whichUnit, scaleX, scaleY, scaleZ)
+    return SetUnitScale(whichUnit, scaleX, scaleY, scaleZ)
+  end
+
+  function realWc3Api.SetUnitVertexColor(whichUnit, red, green, blue, alpha)
+    return SetUnitVertexColor(whichUnit, red, green, blue, alpha)
+  end
+
+  function realWc3Api.QueueUnitAnimation(whichUnit, whichAnimation)
+    return QueueUnitAnimation(whichUnit, whichAnimation)
+  end
+
+  function realWc3Api.SetUnitAnimationByIndex(whichUnit, whichAnimation)
+    return SetUnitAnimationByIndex(whichUnit, whichAnimation)
+  end
+
+  function realWc3Api.SetUnitAnimationWithRarity(whichUnit, whichAnimation, rarity)
+    return SetUnitAnimationWithRarity(whichUnit, whichAnimation, rarity)
+  end
+
+  function realWc3Api.AddUnitAnimationProperties(whichUnit, animProperties, add)
+    return AddUnitAnimationProperties(whichUnit, animProperties, add)
+  end
+
+  function realWc3Api.SetUnitLookAt(whichUnit, whichBone, lookAtTarget, offsetX, offsetY, offsetZ)
+    return SetUnitLookAt(whichUnit, whichBone, lookAtTarget, offsetX, offsetY, offsetZ)
+  end
+
+  function realWc3Api.SetUnitRescuable(whichUnit, byWhichPlayer, flag)
+    return SetUnitRescuable(whichUnit, byWhichPlayer, flag)
+  end
+
+  function realWc3Api.SetHeroStr(whichHero, newStr, permanent)
+    return SetHeroStr(whichHero, newStr, permanent)
+  end
+
+  function realWc3Api.SetHeroAgi(whichHero, newAgi, permanent)
+    return SetHeroAgi(whichHero, newAgi, permanent)
+  end
+
+  function realWc3Api.SetHeroInt(whichHero, newInt, permanent)
+    return SetHeroInt(whichHero, newInt, permanent)
+  end
+
+  function realWc3Api.GetHeroStr(whichHero, includeBonuses)
+    return GetHeroStr(whichHero, includeBonuses)
+  end
+
+  function realWc3Api.GetHeroAgi(whichHero, includeBonuses)
+    return GetHeroAgi(whichHero, includeBonuses)
+  end
+
+  function realWc3Api.GetHeroInt(whichHero, includeBonuses)
+    return GetHeroInt(whichHero, includeBonuses)
+  end
+
+  function realWc3Api.UnitStripHeroLevel(whichHero, howManyLevels)
+    return UnitStripHeroLevel(whichHero, howManyLevels)
+  end
+
+  function realWc3Api.GetHeroXP(whichHero)
+    return GetHeroXP(whichHero)
+  end
+
+  function realWc3Api.SetHeroXP(whichHero, newXpVal, showEyeCandy)
+    return SetHeroXP(whichHero, newXpVal, showEyeCandy)
+  end
+
+  function realWc3Api.GetHeroSkillPoints(whichHero)
+    return GetHeroSkillPoints(whichHero)
+  end
+
+  function realWc3Api.UnitModifySkillPoints(whichHero, skillPointDelta)
+    return UnitModifySkillPoints(whichHero, skillPointDelta)
+  end
+
+  function realWc3Api.AddHeroXP(whichHero, xpToAdd, showEyeCandy)
+    return AddHeroXP(whichHero, xpToAdd, showEyeCandy)
+  end
+
+  function realWc3Api.SetHeroLevel(whichHero, level, showEyeCandy)
+    return SetHeroLevel(whichHero, level, showEyeCandy)
+  end
+
+  function realWc3Api.GetHeroLevel(whichHero)
+    return GetHeroLevel(whichHero)
+  end
+
+  function realWc3Api.GetUnitLevel(whichUnit)
+    return GetUnitLevel(whichUnit)
+  end
+
+  function realWc3Api.SuspendHeroXP(whichHero, flag)
+    return SuspendHeroXP(whichHero, flag)
+  end
+
+  function realWc3Api.IsSuspendedXP(whichHero)
+    return IsSuspendedXP(whichHero)
+  end
+
+  function realWc3Api.SelectHeroSkill(whichHero, abilcode)
+    return SelectHeroSkill(whichHero, abilcode)
   end
 
   function realWc3Api.KillUnit(whichUnit)
@@ -1937,6 +2165,24 @@ SetPlayerColor(Player(11), ConvertPlayerColor(11))
 SetPlayerRacePreference(Player(11), RACE_PREF_RANDOM)
 SetPlayerRaceSelectable(Player(11), true)
 SetPlayerController(Player(11), MAP_CONTROL_USER)
+SetPlayerStartLocation(Player(20), 12)
+ForcePlayerStartLocation(Player(20), 12)
+SetPlayerColor(Player(20), ConvertPlayerColor(20))
+SetPlayerRacePreference(Player(20), RACE_PREF_UNDEAD)
+SetPlayerRaceSelectable(Player(20), false)
+SetPlayerController(Player(20), MAP_CONTROL_COMPUTER)
+SetPlayerStartLocation(Player(22), 13)
+ForcePlayerStartLocation(Player(22), 13)
+SetPlayerColor(Player(22), ConvertPlayerColor(22))
+SetPlayerRacePreference(Player(22), RACE_PREF_UNDEAD)
+SetPlayerRaceSelectable(Player(22), false)
+SetPlayerController(Player(22), MAP_CONTROL_COMPUTER)
+SetPlayerStartLocation(Player(23), 14)
+ForcePlayerStartLocation(Player(23), 14)
+SetPlayerColor(Player(23), ConvertPlayerColor(23))
+SetPlayerRacePreference(Player(23), RACE_PREF_UNDEAD)
+SetPlayerRaceSelectable(Player(23), false)
+SetPlayerController(Player(23), MAP_CONTROL_COMPUTER)
 end
 
 function InitCustomTeams()
@@ -1952,6 +2198,36 @@ SetPlayerTeam(Player(8), 0)
 SetPlayerTeam(Player(9), 0)
 SetPlayerTeam(Player(10), 0)
 SetPlayerTeam(Player(11), 0)
+SetPlayerTeam(Player(20), 1)
+SetPlayerState(Player(20), PLAYER_STATE_ALLIED_VICTORY, 1)
+SetPlayerTeam(Player(22), 1)
+SetPlayerState(Player(22), PLAYER_STATE_ALLIED_VICTORY, 1)
+SetPlayerTeam(Player(23), 1)
+SetPlayerState(Player(23), PLAYER_STATE_ALLIED_VICTORY, 1)
+SetPlayerAllianceStateAllyBJ(Player(20), Player(22), true)
+SetPlayerAllianceStateAllyBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(22), Player(20), true)
+SetPlayerAllianceStateAllyBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(23), Player(20), true)
+SetPlayerAllianceStateAllyBJ(Player(23), Player(22), true)
+SetPlayerAllianceStateVisionBJ(Player(20), Player(22), true)
+SetPlayerAllianceStateVisionBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(22), Player(20), true)
+SetPlayerAllianceStateVisionBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(23), Player(20), true)
+SetPlayerAllianceStateVisionBJ(Player(23), Player(22), true)
+SetPlayerAllianceStateControlBJ(Player(20), Player(22), true)
+SetPlayerAllianceStateControlBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(22), Player(20), true)
+SetPlayerAllianceStateControlBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(23), Player(20), true)
+SetPlayerAllianceStateControlBJ(Player(23), Player(22), true)
+SetPlayerAllianceStateFullControlBJ(Player(20), Player(22), true)
+SetPlayerAllianceStateFullControlBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(22), Player(20), true)
+SetPlayerAllianceStateFullControlBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(23), Player(20), true)
+SetPlayerAllianceStateFullControlBJ(Player(23), Player(22), true)
 end
 
 function InitAllyPriorities()
@@ -1998,6 +2274,23 @@ SetStartLocPrioCount(11, 3)
 SetStartLocPrio(11, 0, 0, MAP_LOC_PRIO_HIGH)
 SetStartLocPrio(11, 1, 1, MAP_LOC_PRIO_HIGH)
 SetStartLocPrio(11, 2, 10, MAP_LOC_PRIO_HIGH)
+SetStartLocPrioCount(12, 3)
+SetStartLocPrio(12, 0, 0, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(12, 1, 1, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(12, 2, 3, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrioCount(12, 4)
+SetEnemyStartLocPrio(12, 0, 1, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(12, 1, 2, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(12, 2, 3, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(12, 3, 13, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrioCount(13, 6)
+SetEnemyStartLocPrio(13, 0, 4, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 1, 5, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 2, 7, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 3, 8, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 4, 9, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 5, 10, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrioCount(14, 1)
 end
 
 function main()
@@ -2020,8 +2313,8 @@ end
 function config()
 SetMapName("TRIGSTR_001")
 SetMapDescription("TRIGSTR_003")
-SetPlayers(12)
-SetTeams(12)
+SetPlayers(15)
+SetTeams(15)
 SetGamePlacement(MAP_PLACEMENT_TEAMS_TOGETHER)
 DefineStartLocation(0, -6464.0, 4608.0)
 DefineStartLocation(1, -6592.0, -5760.0)
@@ -2035,6 +2328,9 @@ DefineStartLocation(8, -128.0, -10816.0)
 DefineStartLocation(9, -4160.0, -10752.0)
 DefineStartLocation(10, -448.0, -5056.0)
 DefineStartLocation(11, -2944.0, -640.0)
+DefineStartLocation(12, 5632.0, 9152.0)
+DefineStartLocation(13, 2944.0, 7616.0)
+DefineStartLocation(14, 6464.0, 6784.0)
 InitCustomPlayerSlots()
 InitCustomTeams()
 InitAllyPriorities()
