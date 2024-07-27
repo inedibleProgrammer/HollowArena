@@ -31,7 +31,7 @@ function createMapFile()
 
   local gitString = "map.commit = " .. "\"" .. gitCommit .. "\"\n"
 
-  map_file_contents = mapFileContents .. mapVersion .. gitString
+  mapFileContents = mapFileContents .. mapVersion .. gitString
   return mapFileContents
 end
 
@@ -43,6 +43,8 @@ function main()
 
   local mapFileContents = createMapFile()
   combined:write(mapFileContents)
+
+  -- print(mapFileContents)
 
   for k1, filename in pairs(Build.SourceFiles) do
     file = io.open(filename, "r")
