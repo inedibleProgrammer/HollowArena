@@ -29,16 +29,6 @@ BlzCreateItemWithSkin(FourCC("gold"), 7842.3, 8330.0, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("tpow"), 6875.6, 5718.4, FourCC("tpow"))
 end
 
-function CreateUnitsForPlayer1()
-local p = Player(1)
-local u
-local unitID
-local t
-local life
-
-u = BlzCreateUnitWithSkin(p, FourCC("hpea"), -2219.7, 5895.4, 124.094, FourCC("hpea"))
-end
-
 function CreateNeutralPassiveBuildings()
 local p = Player(PLAYER_NEUTRAL_PASSIVE)
 local u
@@ -97,13 +87,13 @@ u = BlzCreateUnitWithSkin(p, FourCC("hshy"), 8160.0, -8096.0, 270.000, FourCC("h
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 5824.0, 7232.0, 270.000, FourCC("ngol"))
 SetResourceAmount(u, 12500)
 u = BlzCreateUnitWithSkin(p, FourCC("hvlt"), -6720.0, 7872.0, 270.000, FourCC("hvlt"))
+u = BlzCreateUnitWithSkin(p, FourCC("ncop"), -5824.0, 2432.0, 270.000, FourCC("ncop"))
 end
 
 function CreatePlayerBuildings()
 end
 
 function CreatePlayerUnits()
-CreateUnitsForPlayer1()
 end
 
 function CreateAllUnits()
@@ -119,6 +109,8 @@ gg_rct_startRect = Rect(-2816.0, 5472.0, -1408.0, 6880.0)
 end
 
 map = {}
+map.version = "0.0.0"
+map.commit = "29055fa8253274a2eea7b5b843af53222f5c47e9"
 function map.Editor_Create()
   local editor = {}
 
@@ -160,7 +152,7 @@ function map.HollowArena_Initialize()
   wc3api.MeleeStartingHeroLimit()
   wc3api.MeleeGrantHeroItems()
 
-
+  local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 end
 
@@ -180,11 +172,6 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
       local thePlayer = wc3api.GetTriggerPlayer()
       local playerName = wc3api.GetPlayerName(thePlayer)
 
-      local wagonLog = {}
-      wagonLog.type = logging.types.INFO
-      wagonLog.message = playerName .. " builds town hall"
-      logging.Write(wagonLog)
-
       for _,wagonData in pairs(wagons.list) do
         if(wagonData.built == true) then return end
         if(thePlayer == wagonData.playerref) then
@@ -197,6 +184,11 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             wc3api.RemoveUnit(wagonData.unit)
             wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
             wagonData.built = true
+
+            local wagonLog = {}
+            wagonLog.type = logging.types.INFO
+            wagonLog.message = playerName .. " builds town hall"
+            logging.Write(wagonLog)
           end
         end
       end
@@ -212,7 +204,10 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
     wagonData.built = false
     wagonData.playerref = player.ref
 
-    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
+    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger,
+                                          player.ref,
+                                          wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START,
+                                          wc3api.constants.NO_FILTER)
 
     wagonData.unit = wc3api.CreateUnit(player.ref,
                                        wc3api.FourCC("h000"),
@@ -231,10 +226,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   end
 
   for _, player in pairs(players.list) do
-    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) or (player.id == 1) then
-
-      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, 2000)
-      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, 2000)
+    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and
+       player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
 
       MakeWagon(player)
     end
@@ -330,6 +323,28 @@ function map.Wagons_Tests(testFramework)
     assert(testWagon.built == true)
     assert(otherWagon.built == false)
   end
+end
+function map.StartingResources_Create(wc3api, players)
+  local startingResources = {}
+
+  local function GiveResourcesToAllPlayers()
+    local function GiveResourcesToAllPlayers2()
+      for _,player in pairs(players.list) do
+        wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, 2000)
+        wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, 2000)
+      end
+    end
+    xpcall(GiveResourcesToAllPlayers2, print)
+  end
+
+  local startingResourcesTrigger = wc3api.CreateTrigger()
+  wc3api.TriggerAddAction(startingResourcesTrigger, GiveResourcesToAllPlayers)
+
+  wc3api.TriggerExecute(startingResourcesTrigger)
+
+  wc3api.DestroyTrigger(startingResourcesTrigger)
+
+  return startingResources
 end
 function map.Commands_Create(wc3api)
   local commands = {}
@@ -1063,6 +1078,18 @@ function map.DebugTools_Create(wc3api, logging, players, commands, utility, colo
   debugLog.type = logging.types.DEBUG
   debugLog.message = ""
 
+  local versionCommand = {}
+  versionCommand.activator = "-version"
+  versionCommand.users = players.ALL_PLAYERS
+  function versionCommand.Handler()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+    local mapVer = "Map Version: " .. map.version
+    local mapCommit = "Map Commit: " .. map.commit
+
+    wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, mapVer)
+    wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, mapCommit)
+  end
+
   local function GetResourceData()
     local data = {}
 
@@ -1117,7 +1144,7 @@ function map.DebugTools_Create(wc3api, logging, players, commands, utility, colo
   end
 
 
-
+  commands.Add(versionCommand)
   commands.Add(setGoldCommand)
   commands.Add(setWoodCommand)
 
@@ -1303,6 +1330,10 @@ function map.RealWc3Api_Create()
     return CreateTrigger()
   end
 
+  function realWc3Api.DestroyTrigger(whichTrigger)
+    return DestroyTrigger(whichTrigger)
+  end
+
   function realWc3Api.TriggerSleepAction(timeout)
     return TriggerSleepAction(timeout)
   end
@@ -1325,6 +1356,54 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.DestroyBoolExpr(e)
     return DestroyBoolExpr(e)
+  end
+
+  function realWc3Api.TriggerRegisterUnitInRange(whichTrigger, whichUnit, range, filter)
+    return TriggerRegisterUnitInRange(whichTrigger, whichUnit, range, filter)
+  end
+
+  function realWc3Api.TriggerRemoveCondition(whichTrigger, whichCondition)
+    return TriggerRemoveCondition(whichTrigger, whichCondition)
+  end
+
+  function realWc3Api.TriggerClearConditions(whichTrigger)
+    return TriggerClearConditions(whichTrigger)
+  end
+
+  function realWc3Api.TriggerRemoveAction(whichTrigger, whichAction)
+    return TriggerRemoveAction(whichTrigger, whichAction)
+  end
+
+  function realWc3Api.TriggerClearActions(whichTrigger)
+    return TriggerClearActions(whichTrigger)
+  end
+
+  function realWc3Api.TriggerSleepAction(timeout)
+    return TriggerSleepAction(timeout)
+  end
+
+  function realWc3Api.TriggerWaitForSound(s, offset)
+    return TriggerWaitForSound(s, offset)
+  end
+
+  function realWc3Api.TriggerExecute(whichTrigger)
+    return TriggerExecute(whichTrigger)
+  end
+
+  function realWc3Api.TriggerEvaluate(whichTrigger)
+    return TriggerEvaluate(whichTrigger)
+  end
+
+  function realWc3Api.TriggerExecuteWait(whichTrigger)
+    return TriggerExecuteWait(whichTrigger)
+  end
+
+  function realWc3Api.TriggerSyncStart()
+    return TriggerSyncStart()
+  end
+
+  function realWc3Api.TriggerSyncReady()
+    return TriggerSyncReady()
   end
 
   function realWc3Api.TriggerRegisterPlayerChatEvent(whichTrigger, whichPlayer, chatMessageToDetect, exactMatchOnly)
@@ -1754,6 +1833,7 @@ function map.RealWc3Api_Create()
   function realWc3Api.MeleeGrantHeroItems()
     return MeleeGrantHeroItems()
   end
+  
 
   return realWc3Api
 end

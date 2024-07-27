@@ -31,7 +31,7 @@ function map.HollowArena_Initialize()
   wc3api.MeleeStartingHeroLimit()
   wc3api.MeleeGrantHeroItems()
 
-
+  local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 end
 

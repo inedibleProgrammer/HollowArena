@@ -14,8 +14,6 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
       local thePlayer = wc3api.GetTriggerPlayer()
       local playerName = wc3api.GetPlayerName(thePlayer)
 
-
-
       for _,wagonData in pairs(wagons.list) do
         if(wagonData.built == true) then return end
         if(thePlayer == wagonData.playerref) then
@@ -48,7 +46,10 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
     wagonData.built = false
     wagonData.playerref = player.ref
 
-    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
+    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger,
+                                          player.ref,
+                                          wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START,
+                                          wc3api.constants.NO_FILTER)
 
     wagonData.unit = wc3api.CreateUnit(player.ref,
                                        wc3api.FourCC("h000"),
@@ -67,10 +68,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   end
 
   for _, player in pairs(players.list) do
-    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) or (player.id == 1) then
-
-      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, 2000)
-      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, 2000)
+    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and
+       player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
 
       MakeWagon(player)
     end

@@ -1,12 +1,13 @@
 Build = {}
 Build.Combined = "Combined.lua"
 
-MAP_VERSION = "Alpha"
+MAP_VERSION = "0.0.0"
 
 Build.SourceFiles = {
   "Editor.lua",
   "HollowArena.lua",
   "Wagons.lua",
+  "StartingResources.lua",
   "../Wc3Tools/Commands.lua",
   "../Wc3Tools/TestFramework.lua",
   "../Wc3Tools/Utility.lua",

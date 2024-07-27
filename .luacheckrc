@@ -8,6 +8,7 @@ std = {
     "type",
     "string",
     "table",
-    "tonumber"
+    "tonumber",
+    "ipairs"
     }
 }
