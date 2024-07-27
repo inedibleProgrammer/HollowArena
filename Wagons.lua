@@ -24,6 +24,7 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             local baseface = wc3api.GetUnitFacing(theBuilding)
             wc3api.RemoveUnit(theBuilding)
             wc3api.RemoveUnit(wagonData.unit)
+            wagonData.unit = nil
             wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
             wagonData.built = true
 
