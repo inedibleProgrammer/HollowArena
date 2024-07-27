@@ -1,8 +1,8 @@
+gg_rct_startRect = nil
 gg_snd_Warning = nil
 gg_snd_Tension = nil
-gg_trg_Melee_Initialization = nil
 gg_trg_LaunchLua = nil
-gg_rct_startRect = nil
+gg_trg_Melee_Initialization = nil
 function InitGlobals()
 end
 
@@ -27,6 +27,16 @@ BlzCreateItemWithSkin(FourCC("gold"), 8008.3, 8227.2, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("gold"), 7854.8, 8193.7, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("gold"), 7842.3, 8330.0, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("tpow"), 6875.6, 5718.4, FourCC("tpow"))
+end
+
+function CreateUnitsForPlayer1()
+local p = Player(1)
+local u
+local unitID
+local t
+local life
+
+u = BlzCreateUnitWithSkin(p, FourCC("hpea"), -2219.7, 5895.4, 124.094, FourCC("hpea"))
 end
 
 function CreateNeutralPassiveBuildings()
@@ -93,6 +103,7 @@ function CreatePlayerBuildings()
 end
 
 function CreatePlayerUnits()
+CreateUnitsForPlayer1()
 end
 
 function CreateAllUnits()
@@ -108,33 +119,6 @@ gg_rct_startRect = Rect(-2816.0, 5472.0, -1408.0, 6880.0)
 end
 
 map = {}
-function map.HollowArena_Initialize()
-  local game = {}
-  local wc3api = map.RealWc3Api_Create()
-  local colors = map.Colors_Create()
-  local utility = map.Utility_Create()
-  local commands = map.Commands_Create(wc3api)
-  local clock = map.Clock_Create()
-  local authenticatedNames = {"WorldEdit", "MasterLich#11192", "MagicDoor#1685"}
-  local players = map.Players_Create(wc3api, commands, colors, authenticatedNames)
-  local gameClock = map.GameClock_Create(wc3api, clock, commands, players)
-  local logging = map.Logging_Create(wc3api, gameClock, commands, players)
-  local unitManager = map.UnitManager_Create(wc3api, logging, commands)
-  local editor = map.Editor_Create()
-  local debugTools = map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
-
-  game.worldEdit = players.GetPlayerByName("WorldEdit")
-  logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
-
-  local gameStatusLog = {}
-  gameStatusLog.type = logging.types.INFO
-  gameStatusLog.message = "Game Start"
-  logging.Write(gameStatusLog)
-
-
-  local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
-end
-
 function map.Editor_Create()
   local editor = {}
 
@@ -143,12 +127,46 @@ function map.Editor_Create()
   return editor
 end
 
+function map.HollowArena_Initialize()
+  local game = {}
+  local wc3api = map.RealWc3Api_Create()
+  local colors = map.Colors_Create()
+  local utility = map.Utility_Create()
+  local commands = map.Commands_Create(wc3api)
+  local clock = map.Clock_Create()
+  local authenticatedNames = {"WorldEdit", "MasterLich#11192", "MagicDoor#1685"}
+  local players = map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
+  local gameClock = map.GameClock_Create(wc3api, clock, commands, players)
+  local logging = map.Logging_Create(wc3api, gameClock, commands, players)
+  local unitManager = map.UnitManager_Create(wc3api, logging, commands)
+  local editor = map.Editor_Create()
+  local debugTools = map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
+
+  -- game.worldEdit = players.GetPlayerByName("WorldEdit")
+  -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
+
+  for _,player in pairs(players.list) do
+    if(player.name == "WorldEdit" or player.name == "MasterLich#11192") then
+      logging.SetPlayerOptionByID(player.id, logging.types.ALL)
+    end
+  end
+
+  local gameStatusLog = {}
+  gameStatusLog.type = logging.types.INFO
+  gameStatusLog.message = "Game Start"
+  logging.Write(gameStatusLog)
+
+  wc3api.MeleeStartingVisibility()
+  wc3api.MeleeStartingHeroLimit()
+  wc3api.MeleeGrantHeroItems()
+
+
+  local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
+end
+
 function map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wagons = {}
   wagons.list = {}
-
-  local wagonLog = {}
-  wagonLog.type = logging.types.INFO
 
   local startRectInfo = {}
   startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
@@ -160,6 +178,12 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
       -- https://www.hiveworkshop.com/threads/how-to-get-building-unit.274883/
       local theBuilding = wc3api.GetConstructingStructure()
       local thePlayer = wc3api.GetTriggerPlayer()
+      local playerName = wc3api.GetPlayerName(thePlayer)
+
+      local wagonLog = {}
+      wagonLog.type = logging.types.INFO
+      wagonLog.message = playerName .. " builds town hall"
+      logging.Write(wagonLog)
 
       for _,wagonData in pairs(wagons.list) do
         if(wagonData.built == true) then return end
@@ -183,29 +207,36 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   local finishBuildingTrigger = wc3api.CreateTrigger()
   wc3api.TriggerAddAction(finishBuildingTrigger, wagons.WagonBuildingAction)
 
+  local function MakeWagon(player)
+    local wagonData = {}
+    wagonData.built = false
+    wagonData.playerref = player.ref
+
+    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
+
+    wagonData.unit = wc3api.CreateUnit(player.ref,
+                                       wc3api.FourCC("h000"),
+                                       startRectInfo.centerx,
+                                       startRectInfo.centery,
+                                       0.00)
+
+    wc3api.SetUnitMoveSpeed(wagonData.unit, 3000)
+    wc3api.UnitAddAbility(wagonData.unit, wc3api.FourCC("AEbl")) -- blink
+    wc3api.SetUnitAbilityLevel(wagonData.unit, wc3api.FourCC("AEbl"), 3)
+    wc3api.BlzSetUnitMaxMana(wagonData.unit, 500)
+    wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA, 300)
+    wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA_REGENERATION, 5)
+    wc3api.BlzSetUnitName(wagonData.unit, player.name)
+    table.insert(wagons.list, wagonData)
+  end
+
   for _, player in pairs(players.list) do
-    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
-      local wagonData = {}
-      wagonData.built = false
+    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) or (player.id == 1) then
 
-      wagonData.playerref = player.ref
+      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, 2000)
+      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, 2000)
 
-      wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
-
-      wagonData.unit = wc3api.CreateUnit(player.ref,
-                                         wc3api.FourCC("h000"),
-                                         startRectInfo.centerx,
-                                         startRectInfo.centery,
-                                         0.00)
-
-      wc3api.SetUnitMoveSpeed(wagonData.unit, 3000)
-      wc3api.UnitAddAbility(wagonData.unit, wc3api.FourCC("AEbl")) -- blink
-      wc3api.SetUnitAbilityLevel(wagonData.unit, wc3api.FourCC("AEbl"), 3)
-      wc3api.BlzSetUnitMaxMana(wagonData.unit, 500)
-      wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA, 300)
-      wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA_REGENERATION, 5)
-      wc3api.BlzSetUnitName(wagonData.unit, player.name)
-      table.insert(wagons.list, wagonData)
+      MakeWagon(player)
     end
   end
 
@@ -246,6 +277,8 @@ function map.Wagons_Tests(testFramework)
   function wc3api.GetUnitFacing() end
   function wc3api.RemoveUnit() end
   function wc3api.SetUnitMoveSpeed() end
+  function wc3api.SetPlayerState() end
+  function wc3api.GetPlayerName() return "name" end
 
   local players = {}
   players.list = {}
@@ -260,6 +293,7 @@ function map.Wagons_Tests(testFramework)
 
   local logging = {}
   logging.types = {}
+  function logging.Write() end
 
   local editor = {}
 
@@ -277,19 +311,24 @@ function map.Wagons_Tests(testFramework)
     p1.playerslotstate = "playing"
     p2.playerslotstate = "playing"
     p1.mapcontrol = "user"
-    p2.mapcontrol = "comp"
+    p2.mapcontrol = "user"
     local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 
     local testWagon
+    local otherWagon
     for _,wagonData in pairs(wagons.list) do
       if(wagonData.playerref == "p1ref") then
         testWagon = wagonData
+      end
+      if(wagonData.playerref == "p2ref") then
+        otherWagon = wagonData
       end
     end
 
     wagons.WagonBuildingAction()
 
     assert(testWagon.built == true)
+    assert(otherWagon.built == false)
   end
 end
 function map.Commands_Create(wc3api)
@@ -388,7 +427,826 @@ function map.TestFramework_Create()
   return testFramework
 end
 
---luacheck: ignore
+function map.Utility_Create()
+  local utility = {}
+
+  function utility.Split(inputStr, sep)
+    if sep == nil then
+      sep = " "
+    end
+    local t = {}
+    for str in string.gmatch(inputStr, "([^"..sep.."]+)") do
+      table.insert(t, str)
+    end
+    return t
+  end
+
+  return utility
+end
+
+
+
+
+function map.Utility_Tests(testFramework)
+  testFramework.Suites.UtilitySuite = {}
+  testFramework.Suites.UtilitySuite.Tests = {}
+  local tsu = testFramework.Suites.UtilitySuite
+
+  function tsu.Setup() end
+  function tsu.Teardown() end
+
+  function tsu.Tests.SplitTest()
+    local utility = map.Utility_Create()
+    local dummyString = "This is a test 113."
+    local splitString = utility.Split(dummyString)
+
+    assert(#splitString == 5)
+    assert(table.remove(splitString) == "113.")
+    assert(table.remove(splitString) == "test")
+    assert(table.remove(splitString) == "a")
+    assert(table.remove(splitString) == "is")
+    assert(table.remove(splitString) == "This")
+  end
+end
+
+function map.GameClock_Create(wc3api, clock, commands, players)
+  local gameClock = {}
+  gameClock.wc3api = wc3api
+  gameClock.clock = clock
+  gameClock.commands = commands
+  gameClock.players = players
+  -- print("GameClock_Create")
+
+  function gameClock.ClockTick()
+    -- print("ClockTick start")
+    -- DisplayTextToForce(GetPlayersAll(), "ClockTick start")
+    -- DisplayTextToForce(GetPlayersAll(), gameClock.clock.seconds)
+    gameClock.clock.Tick()
+    collectgarbage("collect")
+    -- print("ClockTick end")
+  end
+
+  -- print("gameclock setup")
+  gameClock.trigger = wc3api.CreateTrigger()
+  wc3api.TriggerRegisterTimerEvent(gameClock.trigger, 1.00, true)
+  wc3api.TriggerAddAction(gameClock.trigger, gameClock.ClockTick)
+  -- print("gameclock finish")
+
+  local displayTimeCommand = {}
+  displayTimeCommand.activator = "-time"
+  displayTimeCommand.users = players.ALL_PLAYERS
+  function displayTimeCommand.Handler()
+    wc3api.DisplayTextToPlayer(wc3api.GetTriggerPlayer(), 0, 0, gameClock.clock.GetTimeString())
+  end
+  commands.Add(displayTimeCommand)
+
+  return gameClock
+end
+
+
+function map.GameClock_Tests(testFramework)
+  testFramework.Suites.GameClockSuite = {}
+  testFramework.Suites.GameClockSuite.Tests = {}
+  local tsc = testFramework.Suites.GameClockSuite
+  local wc3api = {}
+  wc3api.constants = map.RealWc3Api_Create().constants
+
+  function wc3api.CreateTrigger()
+    return {}
+  end
+
+  function wc3api.TriggerAddAction(trigger, handler)
+    assert(type(trigger) ~= "nil")
+    assert(type(handler) == "function")
+  end
+
+  function wc3api.GetEventPlayerChatString()
+    return ""
+  end
+
+  function wc3api.Player() return "dummy player ref" end
+  function wc3api.GetPlayerId() return 0 end
+  function wc3api.TriggerRegisterTimerEvent() end
+  function wc3api.TriggerAddAction() end
+  function wc3api.GetBJMaxPlayers() return 1 end
+  function wc3api.GetPlayerName() end
+  function wc3api.GetPlayerRace() end
+  function wc3api.GetPlayerTeam() end
+  function wc3api.GetPlayerColor() end
+  function wc3api.GetPlayerController() end
+  function wc3api.GetPlayerSlotState() end
+  function wc3api.TriggerRegisterPlayerChatEvent() end
+  function wc3api.TriggerRegisterPlayerEvent() end
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.DummyTest()
+    assert(true)
+  end
+
+  function tsc.Tests.CreateClock()
+    --[[
+      local clock = map.Clock_Create()
+      local commands = map.Commands_Create(wc3api)
+      local colors = map.Colors_Create()
+      local players = map.Players_Create(wc3api, commands, colors)
+      local gameClock = map.GameClock_Create(wc3api, clock, commands, players)
+    --]]
+
+    assert(true)
+  end
+
+end
+function map.Clock_Create()
+  local clock = {}
+  clock.seconds = 0
+
+  function clock.Tick()
+    clock.seconds = clock.seconds + 1
+  end
+
+  function clock.TimeElapsed()
+    local timeElapsed = {}
+    timeElapsed.hours = 0
+    timeElapsed.minutes = 0
+    timeElapsed.seconds = 0
+    local tempSeconds = clock.seconds
+
+    while tempSeconds >= 3600 do
+      tempSeconds = tempSeconds - 3600
+      timeElapsed.hours = timeElapsed.hours + 1
+    end
+
+    while tempSeconds >= 60 do
+      tempSeconds = tempSeconds - 60
+      timeElapsed.minutes = timeElapsed.minutes + 1
+    end
+
+    timeElapsed.seconds = tempSeconds
+
+    return timeElapsed
+  end
+
+  function clock.GetTimeString()
+    local timeString = ""
+    local timeElapsed = clock.TimeElapsed()
+
+    timeString = tostring(timeElapsed.hours) .. ":" .. tostring(timeElapsed.minutes) .. ":" .. tostring(timeElapsed.seconds)
+    -- timeString = string.format("10:07:00", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
+
+    return timeString
+  end
+
+  return clock
+end
+
+function map.Clock_Tests(testFramework)
+  testFramework.Suites.ClockSuite = {}
+  testFramework.Suites.ClockSuite.Tests = {}
+  local tsc = testFramework.Suites.ClockSuite
+  local wc3api = {}
+  wc3api.constants = map.RealWc3Api_Create().constants
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.DummyTest()
+    assert(true)
+  end
+
+  function tsc.Tests.HoursMinutesSeconds()
+    local clock = map.Clock_Create()
+    clock.seconds = 8192
+    assert(clock.TimeElapsed().hours == 2, "hours wrong")
+    assert(clock.TimeElapsed().minutes == 16, "minutes wrong")
+    assert(clock.TimeElapsed().seconds == 32, "seconds wrong")
+  end
+
+  function tsc.Tests.HoursMinutesSeconds2()
+    local clock = map.Clock_Create()
+    clock.seconds = 3600
+    assert(clock.TimeElapsed().hours == 1, "hours wrong")
+    assert(clock.TimeElapsed().minutes == 0, "minutes wrong")
+    assert(clock.TimeElapsed().seconds == 0, "seconds wrong")
+  end
+
+  function tsc.Tests.GetTimeAsString()
+    local clock = map.Clock_Create()
+    clock.seconds = 8192
+    assert(clock.GetTimeString() == "2:16:32")
+    clock.seconds = 3600
+    assert(clock.GetTimeString() == "1:0:0")
+  end
+end
+
+
+function map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
+  local players = {}
+
+  players.list = {}
+  players.ALL_PLAYERS = {}
+  players.AUTHENTICATED_PLAYERS = {}
+
+  function players.GetPlayerByName(name)
+    for _,player in pairs(players.list) do
+      if player.name == name then
+        return player
+      end
+    end
+    return nil
+  end
+
+  function players.GetPlayerByID(id)
+    for _,player in pairs(players.list) do
+      if player.id == id then
+        return player
+      end
+    end
+    return nil
+  end
+
+  local function PlayerLeavingAction()
+    local p = wc3api.GetTriggerPlayer()
+    local pname = wc3api.GetPlayerName(p)
+    local player = players.GetPlayerByName(pname)
+
+    -- print(gp.coloredName .. " has left the game")
+    -- local coloredPName = colors.GetColoredString(pname, colors.GetColor_N(player.id + 1).text)
+    wc3api.BJDebugMsg(player.coloredname .. " has left the game.")
+  end
+
+  players.playerLeavingTrigger = wc3api.CreateTrigger()
+  wc3api.TriggerAddAction(players.playerLeavingTrigger, PlayerLeavingAction)
+  for i=0, wc3api.GetBJMaxPlayers() do
+    local player = {}
+    player.ref = wc3api.Player(i)
+    player.id = wc3api.GetPlayerId(player.ref)
+    player.name = wc3api.GetPlayerName(player.ref)
+    player.coloredname = colors.GetColoredString(player.name, colors.GetColor_N(player.id + 1).text)
+    player.race = wc3api.GetPlayerRace(player.ref)
+    player.team = wc3api.GetPlayerTeam(player.ref)
+    player.playercolor = wc3api.GetPlayerColor(player.ref)
+    player.mapcontrol = wc3api.GetPlayerController(player.ref)
+    player.playerslotstate = wc3api.GetPlayerSlotState(player.ref)
+
+    table.insert(players.ALL_PLAYERS, player.ref)
+
+    wc3api.TriggerRegisterPlayerEvent(players.playerLeavingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_LEAVE)
+
+    table.insert(players.list, player)
+  end
+
+  local function TryAddPlayerName(playerName, toList)
+    local player = players.GetPlayerByName(playerName)
+    if(player ~= nil) then
+      table.insert(toList, player.ref)
+    end
+  end
+
+  for _,name in pairs(authenticatedNames) do
+    TryAddPlayerName(name, players.AUTHENTICATED_PLAYERS)
+  end
+
+  local showPlayersCommand = {}
+  showPlayersCommand.activator = "-players"
+  showPlayersCommand.users = players.ALL_PLAYERS
+  function showPlayersCommand.Handler()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local splitString = utility.Split(cmdString)
+
+    local pageParam = table.remove(splitString)
+    if(pageParam == "1") then
+      for i=0, 13 do
+        local player = players.GetPlayerByID(i)
+        if(player ~= nil) then
+          local playerInfo = "(" .. player.id + 1 .. ")" .. " " .. player.coloredname ..  " " .. colors.GetColor_N(player.id + 1).text
+          wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, playerInfo)
+        end
+      end
+    elseif(pageParam == "2") then
+      for i=14, 23 do
+        local player = players.GetPlayerByID(i)
+        if(player ~= nil) then
+          local playerInfo = "(" .. player.id + 1 .. ")" .. " " .. player.coloredname ..  " " .. colors.GetColor_N(player.id + 1).text
+          wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, playerInfo)
+        end
+      end
+    end
+  end
+  commands.Add(showPlayersCommand)
+
+
+  local allyPlayerCommand = {}
+  allyPlayerCommand.activator = "-ally"
+  allyPlayerCommand.users = players.ALL_PLAYERS
+  function allyPlayerCommand.Handler()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+
+    local splitString = utility.Split(cmdString)
+    local playerColorNumber = table.remove(splitString)
+    local otherPlayer = players.GetPlayerByID(tonumber(playerColorNumber) - 1)
+
+    if(otherPlayer ~= nil) then
+      wc3api.SetPlayerAlliance(commandingPlayer, otherPlayer.ref,
+                               wc3api.constants.ALLIANCE_PASSIVE, true)
+      wc3api.SetPlayerAlliance(commandingPlayer, otherPlayer.ref,
+                               wc3api.constants.ALLIANCE_SHARED_SPELLS, true)
+    end
+  end
+  commands.Add(allyPlayerCommand)
+
+  local unallyPlayerCommand = {}
+  unallyPlayerCommand.activator = "-unally"
+  unallyPlayerCommand.users = players.ALL_PLAYERS
+  function unallyPlayerCommand.Handler()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+
+    local splitString = utility.Split(cmdString)
+    local playerColorNumber = table.remove(splitString)
+    local otherPlayer = players.GetPlayerByID(tonumber(playerColorNumber) - 1)
+
+    if(otherPlayer ~= nil) then
+      wc3api.SetPlayerAlliance(commandingPlayer, otherPlayer.ref,
+                               wc3api.constants.ALLIANCE_PASSIVE, false)
+      wc3api.SetPlayerAlliance(commandingPlayer, otherPlayer.ref,
+                               wc3api.constants.ALLIANCE_SHARED_SPELLS, false)
+    end
+  end
+  commands.Add(unallyPlayerCommand)
+
+  local visionPlayerCommand = {}
+  visionPlayerCommand.activator = "-vision"
+  visionPlayerCommand.users = players.ALL_PLAYERS
+  function visionPlayerCommand.Handler()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+
+    local splitString = utility.Split(cmdString)
+    local playerColorNumber = table.remove(splitString)
+    local otherPlayer = players.GetPlayerByID(tonumber(playerColorNumber) - 1)
+
+    if(otherPlayer ~= nil) then
+      wc3api.SetPlayerAlliance(commandingPlayer, otherPlayer.ref,
+                               wc3api.constants.ALLIANCE_SHARED_VISION, true)
+    end
+  end
+  commands.Add(visionPlayerCommand)
+
+  local unvisionPlayerCommand = {}
+  unvisionPlayerCommand.activator = "-unvision"
+  unvisionPlayerCommand.users = players.ALL_PLAYERS
+  function unvisionPlayerCommand.Handler()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+
+    local splitString = utility.Split(cmdString)
+    local playerColorNumber = table.remove(splitString)
+    local otherPlayer = players.GetPlayerByID(tonumber(playerColorNumber) - 1)
+
+    if(otherPlayer ~= nil) then
+      wc3api.SetPlayerAlliance(commandingPlayer, otherPlayer.ref,
+                               wc3api.constants.ALLIANCE_SHARED_VISION, false)
+    end
+  end
+  commands.Add(unvisionPlayerCommand)
+
+  local cameraCommand = {}
+  cameraCommand.activator = "-camera"
+  cameraCommand.users = players.ALL_PLAYERS
+  function cameraCommand.Handler()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+
+    local splitString = utility.Split(cmdString)
+    local distance = tonumber(table.remove(splitString))
+    wc3api.SetCameraFieldForPlayer(commandingPlayer,
+                                   wc3api.constants.CAMERA_FIELD_TARGET_DISTANCE,
+                                   distance, 1.00)
+  end
+  commands.Add(cameraCommand)
+
+
+
+  return players
+end
+
+
+
+function map.Players_Tests(testFramework)
+  testFramework.Suites.PlayersSuite = {}
+  testFramework.Suites.PlayersSuite.Tests = {}
+  local tsc = testFramework.Suites.PlayersSuite
+  local wc3api = {}
+  local commands = {}
+  local colors = {}
+  local utility = {}
+  local authenticatedNames = { "authenticatedName1", "authenticatedName2" }
+  wc3api.constants = map.RealWc3Api_Create().constants
+
+  --luacheck: push ignore
+  function wc3api.CreateTrigger() return {} end
+  function wc3api.TriggerAddAction(trigger, handler)
+    assert(type(trigger) ~= "nil")
+    assert(type(handler) == "function")
+  end
+  function wc3api.GetTriggerPlayer() return "GetTriggerPlayer" end
+  function wc3api.GetEventPlayerChatString() return "" end
+  function wc3api.TriggerRegisterPlayerEvent() return "" end
+  function wc3api.Player() return {dummy = "dummy"} end
+  function wc3api.GetBJMaxPlayers() return 26 end
+  function wc3api.GetPlayerId(player) return 0 end
+  function wc3api.GetPlayerName(player) return "name" end
+  function colors.GetColor_N(p1) return {text = "text"} end
+  function colors.GetColoredString(p1, p2) return "coloredstring" end
+  function wc3api.GetPlayerRace(player) return "race" end
+  function wc3api.GetPlayerTeam(player) return "team" end
+  function wc3api.GetPlayerColor(player) return "color" end
+  function wc3api.GetPlayerController(player) return "controller" end
+  function wc3api.GetPlayerSlotState(player) return "slotstate" end
+  function wc3api.SetPlayerAlliance() end
+  function utility.Split() return {"1"} end
+
+  local storedCommands = {}
+  function commands.Add(command)
+    table.insert(storedCommands, command)
+  end
+  --luacheck: pop
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.DummyTest()
+    assert(true)
+  end
+
+  function tsc.Tests.AddAuthenticatedPlayers()
+    local firstTime = true
+    function wc3api.GetPlayerName(player)
+      if firstTime then
+        firstTime = false
+        return "authenticatedName1"
+      end
+      return "noname"
+    end
+    local players = map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
+
+    assert(#players.AUTHENTICATED_PLAYERS > 0, "AUTHENTICATED_PLAYERS EMPTY")
+    assert(#players.AUTHENTICATED_PLAYERS == 1)
+  end
+
+  function tsc.Tests.ShowPlayers()
+    local players = map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
+    local fnCalled = false
+
+    function wc3api.DisplayTextToPlayer(p1, p2, p3, p4)
+      fnCalled = true
+    end
+
+    for _,command in pairs(storedCommands) do
+      if(command.activator == "-players") then
+        command.Handler()
+        assert(fnCalled == true)
+      end
+    end
+  end
+
+  function tsc.Tests.AllyPlayer()
+    local players = map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
+
+    for _,command in pairs(storedCommands) do
+      if(command.activator == "-ally") then
+        command.Handler()
+      end
+    end
+
+  end
+
+end
+
+
+
+function map.Logging_Create(wc3api, gameClock, commands, players)
+  local logging = {}
+  logging.wc3api = wc3api
+  logging.gameClock = gameClock
+  logging.commands = commands
+  logging.players = players
+
+  logging.messages = {}
+  logging.count = 0
+  logging.types = {
+    TRACE = {bin = "000001", name = "TRACE"},
+    DEBUG = {bin = "000010", name = "DEBUG"},
+    INFO =  {bin = "000100", name = "INFO"},
+    WARN =  {bin = "001000", name = "WARN"},
+    ERROR = {bin = "010000", name = "ERROR"},
+    FATAL = {bin = "100000", name = "FATAL"},
+    ALL =   {bin = "111111", name = "ALL"},
+    NONE =  {bin = "000000", name = "NONE"}
+  }
+  logging.playerOptions = {}
+
+  for _,player in pairs(players.list) do
+    playerLogOptions = {}
+    playerLogOptions.id = player.id
+    playerLogOptions.visibility = logging.types.NONE
+
+    table.insert(logging.playerOptions, playerLogOptions)
+  end
+
+  function logging.Write(logMessage)
+    -- print("logging.Write")
+    -- print("1"))
+    local logString = tostring(logging.count) .. "#" .. logging.gameClock.clock.GetTimeString() .. "#" .. logMessage.type.name .. "#" .. logMessage.message
+    -- print("2")
+
+    for _,player in pairs(players.list) do
+      -- print("3")
+      for _,playerLogOptions in pairs(logging.playerOptions) do
+        -- print("4")
+        if(playerLogOptions.id == player.id) then
+          -- print("5")
+          local playerVisibilityOptionBinary = tonumber(playerLogOptions.visibility.bin, 2)
+          local logMessageTypeBinary = tonumber(logMessage.type.bin, 2)
+          -- print("6")
+          -- print(playerVisibilityOptionBinary)
+          -- print(logMessageTypeBinary)
+          -- print(playerVisibilityOptionBinary & logMessageTypeBinary)
+          if (playerVisibilityOptionBinary & logMessageTypeBinary) > 0 then
+            -- print("7")
+            wc3api.DisplayTextToPlayer(player.ref, 0, 0, logString)
+          end
+        end
+      end
+    end
+
+    table.insert(logging.messages, logMessage)
+    logging.count = logging.count + 1
+  end
+
+
+  function logging.SetPlayerOptionByID(id, option)
+    for _,playerLogOptions in pairs(logging.playerOptions) do
+      if playerLogOptions.id == id then
+        for _,visibilityOption in pairs(logging.types) do
+          if(option == visibilityOption) then
+            playerLogOptions.visibility = option
+          end
+        end
+      end
+    end
+  end
+
+  return logging
+end
+
+
+function map.Logging_Tests(testFramework)
+  testFramework.Suites.LoggingSuite = {}
+  testFramework.Suites.LoggingSuite.Tests = {}
+  local tsc = testFramework.Suites.LoggingSuite
+  local wc3api = {}
+  wc3api.constants = map.RealWc3Api_Create().constants
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.DummyTest()
+    assert(true)
+  end
+
+  --luacheck: push ignore
+  function tsc.Tests.DisplayMessagesForSpecificPlayers()
+    local gameClock = {}
+    gameClock.clock = {}
+    local commands = {}
+    local players = {}
+    players.list = {}
+    local player1 = {}
+    player1.id = 0
+    local player2 = {}
+    player2.id = 1
+    table.insert(players.list, player1)
+    table.insert(players.list, player2)
+    local logging = map.Logging_Create(wc3api, gameClock, commands, players)
+
+    function gameClock.clock.GetTimeString() return "0:0:0" end
+
+    local testCalled = 0
+    function wc3api.DisplayTextToPlayer(p1, p2, p3, p4)
+      testCalled = testCalled + 1
+    end
+
+
+    logging.SetPlayerOptionByID(1,logging.types.DEBUG)
+
+    local logMessage = {}
+    logMessage.message = "This is a dummy"
+    logMessage.type = logging.types.DEBUG
+    logging.Write(logMessage)
+
+    assert(logging.count == 1)
+    assert(testCalled == 1)
+  end
+  --luacheck: pop
+
+end
+function map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
+  local debugTools = {}
+
+  local authenticatedUsers = {}
+  local debugLog = {}
+  debugLog.type = logging.types.DEBUG
+  debugLog.message = ""
+
+  local function GetResourceData()
+    local data = {}
+
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local splitString = utility.Split(cmdString)
+
+    data.commandingPlayer = players.GetPlayerByName(wc3api.GetPlayerName(wc3api.GetTriggerPlayer()))
+
+    data.amount = tonumber(table.remove(splitString))
+    if(data.amount < 0) then
+      data = nil
+    end
+
+    local playerID = tonumber(table.remove(splitString))
+    if(playerID < 0 or playerID > wc3api.GetBJMaxPlayers()) then
+      data = nil
+    end
+
+    if(data ~= nil) then
+      data.receivingPlayer = players.GetPlayerByID(playerID)
+    end
+
+    return data
+  end
+
+  -- Usage: "-gold 0 10000"
+  local setGoldCommand = {}
+  setGoldCommand.activator = "-gold"
+  setGoldCommand.users = players.AUTHENTICATED_PLAYERS
+  function setGoldCommand.Handler()
+    local data = GetResourceData()
+
+    if(data ~= nil) then
+      wc3api.SetPlayerState(data.receivingPlayer.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, data.amount)
+      debugLog.message = data.commandingPlayer.coloredname .. " set player " .. data.receivingPlayer.coloredname .. " gold to amount " .. data.amount
+      logging.Write(debugLog)
+    end
+  end
+
+  -- Usage: "-wood 0 10000"
+  local setWoodCommand = {}
+  setWoodCommand.activator = "-wood"
+  setWoodCommand.users = players.AUTHENTICATED_PLAYERS
+  function setWoodCommand.Handler()
+    local data = GetResourceData()
+
+    if(data ~= nil) then
+      wc3api.SetPlayerState(data.receivingPlayer.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, data.amount)
+      debugLog.message = data.commandingPlayer.coloredname .. " set player " .. data.receivingPlayer.coloredname .. " wood to amount " .. data.amount
+      logging.Write(debugLog)
+    end
+  end
+
+
+
+  commands.Add(setGoldCommand)
+  commands.Add(setWoodCommand)
+
+  return debugTools
+end
+function map.UnitManager_Create(wc3api, logging, commands)
+  local unitManager = {}
+  unitManager.wc3api = wc3api
+  unitManager.logging = logging
+  unitManager.commands = commands
+
+
+  function unitManager.ScanAllUnitsOwnedByPlayer(player)
+    local group g = wc3api.CreateGroup()
+
+    local function filterUnits()
+      return true
+    end
+
+    wc3api.GroupEnumUnitsOfPlayer(g, player.ref, wc3api.Filter(filterUnits))
+
+    local function testGroups()
+      local function testGroups2()
+        local testGroupLog = {}
+        testGroupLog.type = logging.types.DEBUG
+        local u = wc3api.GetEnumUnit()
+        local uid = wc3api.GetUnitTypeId(u)
+        local uname = wc3api.GetObjectName(uid)
+
+        testGroupLog.message = "unitname: " .. uname
+
+        logging.Write(testGroupLog)
+      end
+      xpcall(testGroups2, print)
+    end
+
+    wc3api.ForGroup(g, testGroups)
+  end
+
+  return unitManager
+end
+function map.Colors_Create()
+  local colors = {}
+  colors.ColorList = {}
+
+  function colors.AddColor(text, number, hexCode)
+    local color = {}
+    color.text = text
+    color.number = number
+    color.hexCode = hexCode
+
+    table.insert(colors.ColorList, color)
+  end
+
+  -- This function returns a color object from text
+  function colors.GetColor_T(t)
+    for _,v in ipairs(colors.ColorList) do
+      if t == v.text then
+        return v
+      end
+    end
+  end
+
+  function colors.GetColor_N(n)
+    for _,v in ipairs(colors.ColorList) do
+      if n == v.number then
+        return v
+      end
+    end
+  end
+
+  function colors.GetColorCode(text)
+    for _,v in ipairs(colors.ColorList) do
+      if text == v.text then
+        return v.hexCode
+      end
+    end
+  end
+
+  function colors.GetColoredString(normalString, colorName)
+    local coloredString = "|c" .. colors.GetColorCode(colorName) .. normalString  .. "|r"
+    return coloredString
+  end
+
+  colors.AddColor("red", 1, "00FF0303")
+  colors.AddColor("blue", 2, "000042FF")
+  colors.AddColor("teal", 3, "001CE6B9")
+  colors.AddColor("purple", 4, "00540081")
+  colors.AddColor("yellow", 5, "00FFFC00")
+  colors.AddColor("orange", 6, "00FE8A0E")
+  colors.AddColor("green", 7, "0020C000")
+  colors.AddColor("pink", 8, "00E55BB0")
+  colors.AddColor("gray", 9, "00959697")
+  colors.AddColor("light_blue", 10, "007EBFF1")
+  colors.AddColor("dark_green", 11, "00106246")
+  colors.AddColor("brown", 12, "004E2A04")
+  colors.AddColor("maroon", 13, "009B0000")
+  colors.AddColor("navy", 14, "000000C3")
+  colors.AddColor("turquoise", 15, "0000EAFF")
+  colors.AddColor("violet", 16, "00BE00FE")
+  colors.AddColor("wheat", 17, "00EBCD87")
+  colors.AddColor("peach", 18, "00F8A48B")
+  colors.AddColor("mint", 19, "00BFFF80")
+  colors.AddColor("lavender", 20, "00DCB9EB")
+  colors.AddColor("coal", 21, "00282828")
+  colors.AddColor("snow", 22, "00EBF0FF")
+  colors.AddColor("emerald", 23, "0000781E")
+  colors.AddColor("peanut", 24, "00A46F33")
+  colors.AddColor("some_weird_green", 25, "0022744F")
+  colors.AddColor("gold", 26, "00FFD700")
+  colors.AddColor("bright_blue", 27, "0019CAF6")
+
+  return colors
+end
+
+function map.Colors_Tests(testFramework)
+  testFramework.Suites.ColorsSuite = {}
+  testFramework.Suites.ColorsSuite.Tests = {}
+  local tsc = testFramework.Suites.ColorsSuite
+
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.DummyTest()
+    assert(true)
+  end
+end
+--luacheck: push ignore
 
 function map.RealWc3Api_Create()
   local realWc3Api = {}
@@ -428,6 +1286,14 @@ function map.RealWc3Api_Create()
   realWc3Api.constants.MAP_CONTROL_NEUTRAL = MAP_CONTROL_NEUTR
   realWc3Api.constants.MAP_CONTROL_CREEP = MAP_CONTROL_CREEP
   realWc3Api.constants.MAP_CONTROL_NONE = MAP_CONTROL_NONE
+
+  realWc3Api.constants.ALLIANCE_SHARED_XP = ALLIANCE_SHARED_XP
+  realWc3Api.constants.ALLIANCE_SHARED_SPELLS = ALLIANCE_SHARED_SPELLS
+  realWc3Api.constants.ALLIANCE_SHARED_VISION = ALLIANCE_SHARED_VISION
+  realWc3Api.constants.ALLIANCE_SHARED_CONTROL = ALLIANCE_SHARED_CONTROL
+  realWc3Api.constants.ALLIANCE_SHARED_ADVANCED_CONTROL = ALLIANCE_SHARED_ADVANCED_CONTROL
+
+  realWc3Api.constants.CAMERA_FIELD_TARGET_DISTANCE = CAMERA_FIELD_TARGET_DISTANCE
 
   function realWc3Api.BJDebugMsg(msg)
     return BJDebugMsg(msg)
@@ -519,6 +1385,14 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.GetPlayerTeam(whichPlayer)
     return GetPlayerTeam()
+  end
+
+  function realWc3Api.GetPlayerAlliance(sourcePlayer, otherPlayer, whichAllianceSetting)
+    return GetPlayerAlliance(sourcePlayer, otherPlayer, whichAllianceSetting)
+  end
+
+  function realWc3Api.SetPlayerAlliance(sourcePlayer, otherPlayer, whichAllianceSetting, value)
+    return SetPlayerAlliance(sourcePlayer, otherPlayer, whichAllianceSetting, value)
   end
 
   function realWc3Api.GetPlayerColor(whichPlayer)
@@ -865,655 +1739,25 @@ function map.RealWc3Api_Create()
     return EndThematicMusic()
   end
 
+  function realWc3Api.SetCameraFieldForPlayer(whichPlayer, whichField, value, duration)
+    return SetCameraFieldForPlayer(whichPlayer, whichField, value, duration)
+  end
+
+  function realWc3Api.MeleeStartingVisibility()
+    return MeleeStartingVisibility()
+  end
+
+  function realWc3Api.MeleeStartingHeroLimit()
+    return MeleeStartingHeroLimit()
+  end
+
+  function realWc3Api.MeleeGrantHeroItems()
+    return MeleeGrantHeroItems()
+  end
+
   return realWc3Api
 end
-function map.Utility_Create()
-  local utility = {}
-
-  function utility.Split(inputStr, sep)
-    if sep == nil then
-      sep = " "
-    end
-    local t = {}
-    for str in string.gmatch(inputStr, "([^"..sep.."]+)") do
-      table.insert(t, str)
-    end
-    return t
-  end
-
-  return utility
-end
-
-
-
-
-function map.Utility_Tests(testFramework)
-  testFramework.Suites.UtilitySuite = {}
-  testFramework.Suites.UtilitySuite.Tests = {}
-  local tsu = testFramework.Suites.UtilitySuite
-
-  function tsu.Setup() end
-  function tsu.Teardown() end
-
-  function tsu.Tests.SplitTest()
-    local utility = map.Utility_Create()
-    dummyString = "This is a test 113."
-    splitString = utility.Split(dummyString)
-
-    assert(#splitString == 5)
-    assert(table.remove(splitString) == "113.")
-    assert(table.remove(splitString) == "test")
-    assert(table.remove(splitString) == "a")
-    assert(table.remove(splitString) == "is")
-    assert(table.remove(splitString) == "This")
-  end
-end
-
-function map.GameClock_Create(wc3api, clock, commands, players)
-  local gameClock = {}
-  gameClock.wc3api = wc3api
-  gameClock.clock = clock
-  gameClock.commands = commands
-  gameClock.players = players
-  -- print("GameClock_Create")
-
-  function gameClock.ClockTick()
-    -- print("ClockTick start")
-    -- DisplayTextToForce(GetPlayersAll(), "ClockTick start")
-    -- DisplayTextToForce(GetPlayersAll(), gameClock.clock.seconds)
-    gameClock.clock.Tick()
-    collectgarbage("collect")
-    -- print("ClockTick end")
-  end
-
-  -- print("gameclock setup")
-  gameClock.trigger = wc3api.CreateTrigger()
-  wc3api.TriggerRegisterTimerEvent(gameClock.trigger, 1.00, true)
-  wc3api.TriggerAddAction(gameClock.trigger, gameClock.ClockTick)
-  -- print("gameclock finish")
-
-  local displayTimeCommand = {}
-  displayTimeCommand.activator = "-time"
-  displayTimeCommand.users = players.ALL_PLAYERS
-  function displayTimeCommand.Handler()
-    wc3api.DisplayTextToPlayer(wc3api.GetTriggerPlayer(), 0, 0, gameClock.clock.GetTimeString())
-  end
-  commands.Add(displayTimeCommand)
-
-  return gameClock
-end
-
-
-function map.GameClock_Tests(testFramework)
-  testFramework.Suites.GameClockSuite = {}
-  testFramework.Suites.GameClockSuite.Tests = {}
-  local tsc = testFramework.Suites.GameClockSuite
-  local wc3api = {}
-  wc3api.constants = map.RealWc3Api_Create().constants
-
-  function wc3api.CreateTrigger()
-    return {}
-  end
-
-  function wc3api.TriggerAddAction(trigger, handler)
-    assert(type(trigger) ~= "nil")
-    assert(type(handler) == "function")
-  end
-
-  function wc3api.GetEventPlayerChatString()
-    return ""
-  end
-
-  function wc3api.Player() return "dummy player ref" end
-  function wc3api.GetPlayerId() return 0 end
-  function wc3api.TriggerRegisterTimerEvent() end
-  function wc3api.TriggerAddAction() end
-  function wc3api.GetBJMaxPlayers() return 1 end
-  function wc3api.GetPlayerName() end
-  function wc3api.GetPlayerRace() end
-  function wc3api.GetPlayerTeam() end
-  function wc3api.GetPlayerColor() end
-  function wc3api.GetPlayerController() end
-  function wc3api.GetPlayerSlotState() end
-  function wc3api.TriggerRegisterPlayerChatEvent() end
-  function wc3api.TriggerRegisterPlayerEvent() end
-
-  function tsc.Setup() end
-  function tsc.Teardown() end
-
-  function tsc.Tests.DummyTest()
-    assert(true)
-  end
-
-  function tsc.Tests.CreateClock()
-    --[[
-      local clock = map.Clock_Create()
-      local commands = map.Commands_Create(wc3api)
-      local colors = map.Colors_Create()
-      local players = map.Players_Create(wc3api, commands, colors)
-      local gameClock = map.GameClock_Create(wc3api, clock, commands, players)
-    --]]
-
-    assert(true)
-  end
-
-end
-function map.Clock_Create()
-  local clock = {}
-  clock.seconds = 0
-
-  function clock.Tick()
-    clock.seconds = clock.seconds + 1
-  end
-
-  function clock.TimeElapsed()
-    local timeElapsed = {}
-    timeElapsed.hours = 0
-    timeElapsed.minutes = 0
-    timeElapsed.seconds = 0
-    local tempSeconds = clock.seconds
-
-    while tempSeconds >= 3600 do
-      tempSeconds = tempSeconds - 3600
-      timeElapsed.hours = timeElapsed.hours + 1
-    end
-
-    while tempSeconds >= 60 do
-      tempSeconds = tempSeconds - 60
-      timeElapsed.minutes = timeElapsed.minutes + 1
-    end
-
-    timeElapsed.seconds = tempSeconds
-
-    return timeElapsed
-  end
-
-  function clock.GetTimeString()
-    local timeString = ""
-    local timeElapsed = clock.TimeElapsed()
-
-    timeString = tostring(timeElapsed.hours) .. ":" .. tostring(timeElapsed.minutes) .. ":" .. tostring(timeElapsed.seconds)
-    -- timeString = string.format("10:07:00", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
-
-    return timeString
-  end
-
-  return clock
-end
-
-function map.Clock_Tests(testFramework)
-  testFramework.Suites.ClockSuite = {}
-  testFramework.Suites.ClockSuite.Tests = {}
-  local tsc = testFramework.Suites.ClockSuite
-  local wc3api = {}
-  wc3api.constants = map.RealWc3Api_Create().constants
-
-  function tsc.Setup() end
-  function tsc.Teardown() end
-
-  function tsc.Tests.DummyTest()
-    assert(true)
-  end
-
-  function tsc.Tests.HoursMinutesSeconds()
-    local clock = map.Clock_Create()
-    clock.seconds = 8192
-    assert(clock.TimeElapsed().hours == 2, "hours wrong")
-    assert(clock.TimeElapsed().minutes == 16, "minutes wrong")
-    assert(clock.TimeElapsed().seconds == 32, "seconds wrong")
-  end
-
-  function tsc.Tests.HoursMinutesSeconds2()
-    local clock = map.Clock_Create()
-    clock.seconds = 3600
-    assert(clock.TimeElapsed().hours == 1, "hours wrong")
-    assert(clock.TimeElapsed().minutes == 0, "minutes wrong")
-    assert(clock.TimeElapsed().seconds == 0, "seconds wrong")
-  end
-
-  function tsc.Tests.GetTimeAsString()
-    local clock = map.Clock_Create()
-    clock.seconds = 8192
-    assert(clock.GetTimeString() == "2:16:32")
-    clock.seconds = 3600
-    assert(clock.GetTimeString() == "1:0:0")
-  end
-end
-
-
-function map.Players_Create(wc3api, commands, colors, authenticatedNames)
-  local players = {}
-
-  players.list = {}
-  players.ALL_PLAYERS = {}
-  players.AUTHENTICATED_PLAYERS = {}
-
-  function players.GetPlayerByName(name)
-    for _,player in pairs(players.list) do
-      if player.name == name then
-        return player
-      end
-    end
-    return nil
-  end
-
-  function players.GetPlayerByID(id)
-    for _,player in pairs(players.list) do
-      if player.id == id then
-        return player
-      end
-    end
-    return nil
-  end
-
-  local function PlayerLeavingAction()
-    local p = wc3api.GetTriggerPlayer()
-    local pname = wc3api.GetPlayerName(p)
-    local player = players.GetPlayerByName(pname)
-
-    -- print(gp.coloredName .. " has left the game")
-    -- local coloredPName = colors.GetColoredString(pname, colors.GetColor_N(player.id + 1).text)
-    wc3api.BJDebugMsg(player.coloredname .. " has left the game.")
-  end
-
-  players.playerLeavingTrigger = wc3api.CreateTrigger()
-  wc3api.TriggerAddAction(players.playerLeavingTrigger, PlayerLeavingAction)
-  for i=0, wc3api.GetBJMaxPlayers() do
-    local player = {}
-    player.ref = wc3api.Player(i)
-    player.id = wc3api.GetPlayerId(player.ref)
-    player.name = wc3api.GetPlayerName(player.ref)
-    player.coloredname = colors.GetColoredString(player.name, colors.GetColor_N(player.id + 1).text)
-    player.race = wc3api.GetPlayerRace(player.ref)
-    player.team = wc3api.GetPlayerTeam(player.ref)
-    player.playercolor = wc3api.GetPlayerColor(player.ref)
-    player.mapcontrol = wc3api.GetPlayerController(player.ref)
-    player.playerslotstate = wc3api.GetPlayerSlotState(player.ref)
-
-    table.insert(players.ALL_PLAYERS, player.ref)
-
-    wc3api.TriggerRegisterPlayerEvent(players.playerLeavingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_LEAVE)
-
-    table.insert(players.list, player)
-  end
-
-  local function TryAddPlayerName(playerName, toList)
-    local player = players.GetPlayerByName(playerName)
-    if(player ~= nil) then
-      table.insert(toList, player.ref)
-    end
-  end
-
-  for _,name in pairs(authenticatedNames) do
-    TryAddPlayerName(name, players.AUTHENTICATED_PLAYERS)
-  end
-
-
-
-  return players
-end
-
-
-
-function map.Players_Tests(testFramework)
-  testFramework.Suites.PlayersSuite = {}
-  testFramework.Suites.PlayersSuite.Tests = {}
-  local tsc = testFramework.Suites.PlayersSuite
-  local wc3api = {}
-  local commands = {}
-  local colors = {}
-  local authenticatedNames = { "authenticatedName1", "authenticatedName2" }
-
-  wc3api.constants = map.RealWc3Api_Create().constants
-
-  function wc3api.CreateTrigger() return {} end
-
-  function wc3api.TriggerAddAction(trigger, handler)
-    assert(type(trigger) ~= "nil")
-    assert(type(handler) == "function")
-  end
-
-  function wc3api.GetEventPlayerChatString() return "" end
-  function wc3api.TriggerRegisterPlayerEvent() return "" end
-  function wc3api.Player() return {dummy = "dummy"} end
-  function wc3api.GetBJMaxPlayers() return 26 end
-  function wc3api.GetPlayerId(player) return 0 end
-  function wc3api.GetPlayerName(player) return "name" end
-  function colors.GetColor_N(p1) return {} end
-  function colors.GetColoredString(p1) return "coloredstring" end
-  function wc3api.GetPlayerRace(player) return "race" end
-  function wc3api.GetPlayerTeam(player) return "team" end
-  function wc3api.GetPlayerColor(player) return "color" end
-  function wc3api.GetPlayerController(player) return "controller" end
-  function wc3api.GetPlayerSlotState(player) return "slotstate" end
-
-  function tsc.Setup() end
-  function tsc.Teardown() end
-
-  function tsc.Tests.DummyTest()
-    assert(true)
-  end
-
-  function tsc.Tests.AddAuthenticatedPlayers()
-    local firstTime = true
-    function wc3api.GetPlayerName(player)
-      if firstTime then
-        firstTime = false
-        return "authenticatedName1"
-      end
-      return "noname"
-    end
-    local players = map.Players_Create(wc3api, commands, colors, authenticatedNames)
-
-    assert(#players.AUTHENTICATED_PLAYERS > 0, "AUTHENTICATED_PLAYERS EMPTY")
-    assert(#players.AUTHENTICATED_PLAYERS == 1)
-  end
-
-end
-
-
-
-function map.Logging_Create(wc3api, gameClock, commands, players)
-  local logging = {}
-  logging.wc3api = wc3api
-  logging.gameClock = gameClock
-  logging.commands = commands
-  logging.players = players
-
-  logging.messages = {}
-  logging.count = 0
-  logging.types = {
-    TRACE = {bin = "000001", name = "TRACE"},
-    DEBUG = {bin = "000010", name = "DEBUG"},
-    INFO =  {bin = "000100", name = "INFO"},
-    WARN =  {bin = "001000", name = "WARN"},
-    ERROR = {bin = "010000", name = "ERROR"},
-    FATAL = {bin = "100000", name = "FATAL"},
-    ALL =   {bin = "111111", name = "ALL"},
-    NONE =  {bin = "000000", name = "NONE"}
-  }
-  logging.playerOptions = {}
-
-  for _,player in pairs(players.list) do
-    playerLogOptions = {}
-    playerLogOptions.id = player.id
-    playerLogOptions.visibility = logging.types.NONE
-
-    table.insert(logging.playerOptions, playerLogOptions)
-  end
-
-  function logging.Write(logMessage)
-    -- print("logging.Write")
-    -- print("1"))
-    local logString = tostring(logging.count) .. "#" .. logging.gameClock.clock.GetTimeString() .. "#" .. logMessage.type.name .. "#" .. logMessage.message
-    -- print("2")
-
-    for _,player in pairs(players.list) do
-      -- print("3")
-      for _,playerLogOptions in pairs(logging.playerOptions) do
-        -- print("4")
-        if(playerLogOptions.id == player.id) then
-          -- print("5")
-          local playerVisibilityOptionBinary = tonumber(playerLogOptions.visibility.bin, 2)
-          local logMessageTypeBinary = tonumber(logMessage.type.bin, 2)
-          -- print("6")
-          -- print(playerVisibilityOptionBinary)
-          -- print(logMessageTypeBinary)
-          -- print(playerVisibilityOptionBinary & logMessageTypeBinary)
-          if (playerVisibilityOptionBinary & logMessageTypeBinary) > 0 then
-            -- print("7")
-            wc3api.DisplayTextToPlayer(player.ref, 0, 0, logString)
-          end
-        end
-      end
-    end
-
-    table.insert(logging.messages, logMessage)
-    logging.count = logging.count + 1
-  end
-
-
-  function logging.SetPlayerOptionByID(id, option)
-    for _,playerLogOptions in pairs(logging.playerOptions) do
-      if playerLogOptions.id == id then
-        for _,visibilityOption in pairs(logging.types) do
-          if(option == visibilityOption) then
-            playerLogOptions.visibility = option
-          end
-        end
-      end
-    end
-  end
-
-  return logging
-end
-
-
-function map.Logging_Tests(testFramework)
-  testFramework.Suites.LoggingSuite = {}
-  testFramework.Suites.LoggingSuite.Tests = {}
-  local tsc = testFramework.Suites.LoggingSuite
-  local wc3api = {}
-  wc3api.constants = map.RealWc3Api_Create().constants
-
-  function tsc.Setup() end
-  function tsc.Teardown() end
-
-  function tsc.Tests.DummyTest()
-    assert(true)
-  end
-
-  function tsc.Tests.DisplayMessagesForSpecificPlayers()
-    local gameClock = {}
-    gameClock.clock = {}
-    local commands = {}
-    local players = {}
-    players.list = {}
-    local player1 = {}
-    player1.id = 0
-    local player2 = {}
-    player2.id = 1
-    table.insert(players.list, player1)
-    table.insert(players.list, player2)
-    local logging = map.Logging_Create(wc3api, gameClock, commands, players)
-
-    function gameClock.clock.GetTimeString() return "0:0:0" end
-
-    local testCalled = 0
-    function wc3api.DisplayTextToPlayer(p1, p2, p3, p4)
-      testCalled = testCalled + 1
-    end
-
-
-    logging.SetPlayerOptionByID(1,logging.types.DEBUG)
-
-    local logMessage = {}
-    logMessage.message = "This is a dummy"
-    logMessage.type = logging.types.DEBUG
-    logging.Write(logMessage)
-
-    assert(logging.count == 1)
-    assert(testCalled == 1)
-  end
-
-end
-function map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
-  local debugTools = {}
-
-  local authenticatedUsers = {}
-  local debugLog = {}
-  debugLog.type = logging.types.DEBUG
-  debugLog.message = ""
-
-  local function GetResourceData()
-    local data = {}
-
-    local cmdString = wc3api.GetEventPlayerChatString()
-    local splitString = utility.Split(cmdString)
-
-    data.commandingPlayer = players.GetPlayerByName(wc3api.GetPlayerName(wc3api.GetTriggerPlayer()))
-
-    data.amount = tonumber(table.remove(splitString))
-    if(data.amount < 0) then
-      data = nil
-    end
-
-    local playerID = tonumber(table.remove(splitString))
-    if(playerID < 0 or playerID > wc3api.GetBJMaxPlayers()) then
-      data = nil
-    end
-
-    if(data ~= nil) then
-      data.receivingPlayer = players.GetPlayerByID(playerID)
-    end
-
-    return data
-  end
-
-  -- Usage: "-gold 0 10000"
-  local setGoldCommand = {}
-  setGoldCommand.activator = "-gold"
-  setGoldCommand.users = players.AUTHENTICATED_PLAYERS
-  function setGoldCommand.Handler()
-    local data = GetResourceData()
-
-    if(data ~= nil) then
-      wc3api.SetPlayerState(data.receivingPlayer.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, data.amount)
-      debugLog.message = data.commandingPlayer.coloredname .. " set player " .. data.receivingPlayer.coloredname .. " gold to amount " .. data.amount
-      logging.Write(debugLog)
-    end
-  end
-
-  -- Usage: "-wood 0 10000"
-  local setWoodCommand = {}
-  setWoodCommand.activator = "-wood"
-  setWoodCommand.users = players.AUTHENTICATED_PLAYERS
-  function setWoodCommand.Handler()
-    local data = GetResourceData()
-
-    if(data ~= nil) then
-      wc3api.SetPlayerState(data.receivingPlayer.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, data.amount)
-      debugLog.message = data.commandingPlayer.coloredname .. " set player " .. data.receivingPlayer.coloredname .. " wood to amount " .. data.amount
-      logging.Write(debugLog)
-    end
-  end
-
-
-
-  commands.Add(setGoldCommand)
-  commands.Add(setWoodCommand)
-
-  return debugTools
-end
-function map.UnitManager_Create(wc3api, logging, commands)
-  local unitManager = {}
-  unitManager.wc3api = wc3api
-  unitManager.logging = logging
-  unitManager.commands = commands
-
-
-  function unitManager.ScanAllUnitsOwnedByPlayer(player)
-    local group g = wc3api.CreateGroup()
-
-    local function filterUnits()
-      return true
-    end
-
-    wc3api.GroupEnumUnitsOfPlayer(g, player.ref, wc3api.Filter(filterUnits))
-
-    local function testGroups()
-      local function testGroups2()
-        local testGroupLog = {}
-        testGroupLog.type = logging.types.DEBUG
-        local u = wc3api.GetEnumUnit()
-        local uid = wc3api.GetUnitTypeId(u)
-        local uname = wc3api.GetObjectName(uid)
-
-        testGroupLog.message = "unitname: " .. uname
-
-        logging.Write(testGroupLog)
-      end
-      xpcall(testGroups2, print)
-    end
-
-    wc3api.ForGroup(g, testGroups)
-  end
-
-  return unitManager
-end
-function map.Colors_Create()
-  local colors = {}
-  colors.ColorList = {}
-
-  function colors.AddColor(text, number, hexCode)
-    local color = {}
-    color.text = text
-    color.number = number
-    color.hexCode = hexCode
-
-    table.insert(colors.ColorList, color)
-  end
-
-  -- This function returns a color object from text
-  function colors.GetColor_T(t)
-    for _,v in ipairs(colors.ColorList) do
-      if t == v.text then
-        return v
-      end
-    end
-  end
-
-  function colors.GetColor_N(n)
-    for _,v in ipairs(colors.ColorList) do
-      if n == v.number then
-        return v
-      end
-    end
-  end
-
-  function colors.GetColorCode(text)
-    for _,v in ipairs(colors.ColorList) do
-      if text == v.text then
-        return v.hexCode
-      end
-    end
-  end
-
-  function colors.GetColoredString(normalString, colorName)
-    local coloredString = "|c" .. colors.GetColorCode(colorName) .. normalString  .. "|r"
-    return coloredString
-  end
-
-  colors.AddColor("red", 1, "00FF0303")
-  colors.AddColor("blue", 2, "000042FF")
-  colors.AddColor("teal", 3, "001CE6B9")
-  colors.AddColor("purple", 4, "00540081")
-  colors.AddColor("yellow", 5, "00FFFC00")
-  colors.AddColor("orange", 6, "00FE8A0E")
-  colors.AddColor("green", 7, "0020C000")
-  colors.AddColor("pink", 8, "00E55BB0")
-  colors.AddColor("gray", 9, "00959697")
-  colors.AddColor("light_blue", 10, "007EBFF1")
-  colors.AddColor("dark_green", 11, "00106246")
-  colors.AddColor("brown", 12, "004E2A04")
-  colors.AddColor("maroon", 13, "009B0000")
-  colors.AddColor("navy", 14, "000000C3")
-  colors.AddColor("turquoise", 15, "0000EAFF")
-  colors.AddColor("violet", 16, "00BE00FE")
-  colors.AddColor("wheat", 17, "00EBCD87")
-  colors.AddColor("peach", 18, "00F8A48B")
-  colors.AddColor("mint", 19, "00BFFF80")
-  colors.AddColor("lavender", 20, "00DCB9EB")
-  colors.AddColor("coal", 21, "00282828")
-  colors.AddColor("snow", 22, "00EBF0FF")
-  colors.AddColor("emerald", 23, "0000781E")
-  colors.AddColor("peanut", 24, "00A46F33")
-  colors.AddColor("some_weird_green", 25, "0022744F")
-  colors.AddColor("gold", 26, "00FFD700")
-  colors.AddColor("bright_blue", 27, "0019CAF6")
-
-  return colors
-end
+--luacheck: pop
 
 -- Hollow Arena
 
@@ -1712,19 +1956,7 @@ DefineStartLocation(9, -4160.0, -10752.0)
 DefineStartLocation(10, -448.0, -5056.0)
 DefineStartLocation(11, -2944.0, -640.0)
 InitCustomPlayerSlots()
-SetPlayerSlotAvailable(Player(0), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(1), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(2), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(3), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(4), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(5), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(6), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(7), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(8), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(9), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(10), MAP_CONTROL_USER)
-SetPlayerSlotAvailable(Player(11), MAP_CONTROL_USER)
-InitGenericPlayerSlots()
+InitCustomTeams()
 InitAllyPriorities()
 end
 

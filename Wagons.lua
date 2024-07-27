@@ -2,9 +2,6 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wagons = {}
   wagons.list = {}
 
-  local wagonLog = {}
-  wagonLog.type = logging.types.INFO
-
   local startRectInfo = {}
   startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
   startRectInfo.centery = wc3api.GetRectCenterY(editor.startRect)
@@ -15,6 +12,9 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
       -- https://www.hiveworkshop.com/threads/how-to-get-building-unit.274883/
       local theBuilding = wc3api.GetConstructingStructure()
       local thePlayer = wc3api.GetTriggerPlayer()
+      local playerName = wc3api.GetPlayerName(thePlayer)
+
+
 
       for _,wagonData in pairs(wagons.list) do
         if(wagonData.built == true) then return end
@@ -28,6 +28,11 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             wc3api.RemoveUnit(wagonData.unit)
             wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
             wagonData.built = true
+
+            local wagonLog = {}
+            wagonLog.type = logging.types.INFO
+            wagonLog.message = playerName .. " builds town hall"
+            logging.Write(wagonLog)
           end
         end
       end
@@ -38,29 +43,36 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   local finishBuildingTrigger = wc3api.CreateTrigger()
   wc3api.TriggerAddAction(finishBuildingTrigger, wagons.WagonBuildingAction)
 
+  local function MakeWagon(player)
+    local wagonData = {}
+    wagonData.built = false
+    wagonData.playerref = player.ref
+
+    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
+
+    wagonData.unit = wc3api.CreateUnit(player.ref,
+                                       wc3api.FourCC("h000"),
+                                       startRectInfo.centerx,
+                                       startRectInfo.centery,
+                                       0.00)
+
+    wc3api.SetUnitMoveSpeed(wagonData.unit, 3000)
+    wc3api.UnitAddAbility(wagonData.unit, wc3api.FourCC("AEbl")) -- blink
+    wc3api.SetUnitAbilityLevel(wagonData.unit, wc3api.FourCC("AEbl"), 3)
+    wc3api.BlzSetUnitMaxMana(wagonData.unit, 500)
+    wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA, 300)
+    wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA_REGENERATION, 5)
+    wc3api.BlzSetUnitName(wagonData.unit, player.name)
+    table.insert(wagons.list, wagonData)
+  end
+
   for _, player in pairs(players.list) do
-    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
-      local wagonData = {}
-      wagonData.built = false
+    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) or (player.id == 1) then
 
-      wagonData.playerref = player.ref
+      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, 2000)
+      wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, 2000)
 
-      wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger, player.ref, wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START, wc3api.constants.NO_FILTER)
-
-      wagonData.unit = wc3api.CreateUnit(player.ref,
-                                         wc3api.FourCC("h000"),
-                                         startRectInfo.centerx,
-                                         startRectInfo.centery,
-                                         0.00)
-
-      wc3api.SetUnitMoveSpeed(wagonData.unit, 3000)
-      wc3api.UnitAddAbility(wagonData.unit, wc3api.FourCC("AEbl")) -- blink
-      wc3api.SetUnitAbilityLevel(wagonData.unit, wc3api.FourCC("AEbl"), 3)
-      wc3api.BlzSetUnitMaxMana(wagonData.unit, 500)
-      wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA, 300)
-      wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA_REGENERATION, 5)
-      wc3api.BlzSetUnitName(wagonData.unit, player.name)
-      table.insert(wagons.list, wagonData)
+      MakeWagon(player)
     end
   end
 
@@ -101,6 +113,8 @@ function map.Wagons_Tests(testFramework)
   function wc3api.GetUnitFacing() end
   function wc3api.RemoveUnit() end
   function wc3api.SetUnitMoveSpeed() end
+  function wc3api.SetPlayerState() end
+  function wc3api.GetPlayerName() return "name" end
 
   local players = {}
   players.list = {}
@@ -115,6 +129,7 @@ function map.Wagons_Tests(testFramework)
 
   local logging = {}
   logging.types = {}
+  function logging.Write() end
 
   local editor = {}
 
@@ -132,18 +147,23 @@ function map.Wagons_Tests(testFramework)
     p1.playerslotstate = "playing"
     p2.playerslotstate = "playing"
     p1.mapcontrol = "user"
-    p2.mapcontrol = "comp"
+    p2.mapcontrol = "user"
     local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 
     local testWagon
+    local otherWagon
     for _,wagonData in pairs(wagons.list) do
       if(wagonData.playerref == "p1ref") then
         testWagon = wagonData
+      end
+      if(wagonData.playerref == "p2ref") then
+        otherWagon = wagonData
       end
     end
 
     wagons.WagonBuildingAction()
 
     assert(testWagon.built == true)
+    assert(otherWagon.built == false)
   end
 end
