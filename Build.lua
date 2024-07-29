@@ -9,6 +9,7 @@ Build.SourceFiles = {
   "Wagons.lua",
   "StartingResources.lua",
   "Wormwood.lua",
+  "Contestable.lua",
   "../Wc3Tools/Commands.lua",
   "../Wc3Tools/TestFramework.lua",
   "../Wc3Tools/Utility.lua",
