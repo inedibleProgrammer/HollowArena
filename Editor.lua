@@ -1,5 +1,6 @@
 --luacheck: push ignore
 
+-- Interface between the scripting code and the wc3 editor
 function map.Editor_Create()
   local editor = {}
 
@@ -11,7 +12,7 @@ function map.Editor_Create()
 
   editor.contestedShipyardRect1 = gg_rct_contestedShipyardRect1
 
-  table.insert(contestableRects, editor.contestedShipyardRect1)
+  table.insert(editor.contestableRects, editor.contestedShipyardRect1)
 
 
 
