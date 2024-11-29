@@ -1,3 +1,5 @@
+--luacheck: push ignore
+
 function map.Editor_Create()
   local editor = {}
 
@@ -16,3 +18,4 @@ function map.Editor_Create()
   return editor
 end
 
+--luacheck: pop

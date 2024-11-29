@@ -24,7 +24,7 @@ function map.Wormwood_Create(wc3api, editor, players)
 
   wc3api.BlzSetUnitName(wormwood.unit, "Wormwood")
   wc3api.BlzSetUnitMaxHP(wormwood.unit, 100000)
-  wc3api.SetUnitState(wormwood.unit, UNIT_STATE_LIFE, 100000.0)
+  wc3api.SetUnitState(wormwood.unit, wc3api.constants.UNIT_STATE_LIFE, 100000.0)
   wc3api.BlzSetUnitRealField(wormwood.unit, wc3api.constants.UNIT_RF_HIT_POINTS_REGENERATION_RATE, 10)
   wc3api.BlzSetUnitBaseDamage(wormwood.unit, 500, wc3api.constants.WEAPON_INDEX_GROUND)
   wc3api.BlzSetUnitBaseDamage(wormwood.unit, 500, wc3api.constants.WEAPON_INDEX_AIR)

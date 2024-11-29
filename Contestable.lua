@@ -1,13 +1,13 @@
 function map.Contestable_Create(wc3api, editor)
   local contestable = {}
-  local contestable.list = {}
+  contestable.list = {}
 
   for _,crect in pairs(editor.contestableRects) do
     local function setupCrect()
       
     end
     local cinfo = {}
-    local cinfo.g = wc3api.CreateGroup()
+    cinfo.g = wc3api.CreateGroup()
     wc3api.GroupEnumUnitsInRect(cinfo.g, crect, wc3api.constants.NO_FILTER)
     wc3api.ForGroup(cinfo.g, setupCrect)
 
@@ -33,11 +33,8 @@ function map.Contestable_Tests(testFramework)
   function tsc.Setup() end
   function tsc.Teardown() end
 
-  function tsc.Tests.Dummy()
+  function tsc.Tests.MakeSomethingContestable()
     local contestable = map.Contestable_Create(wc3api, editor)
-
-    for _,crect in pairs(contestable.list) do
-      
-    end
+    
   end
 end

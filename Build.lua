@@ -39,6 +39,7 @@ function createMapFile()
 end
 
 function main()
+  -- Erase the current Combined file if there is one
   local combined = io.open(Build.Combined, "w")
   combined:close()
 
@@ -46,8 +47,6 @@ function main()
 
   local mapFileContents = createMapFile()
   combined:write(mapFileContents)
-
-  -- print(mapFileContents)
 
   for k1, filename in pairs(Build.SourceFiles) do
     file = io.open(filename, "r")
