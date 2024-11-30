@@ -34,6 +34,6 @@ function map.HollowArena_Initialize()
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wormwood = map.Wormwood_Create(wc3api, editor, players)
-  local contestable = map.Contestable_Create(wc3api, editor)
+  local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
 end
 
