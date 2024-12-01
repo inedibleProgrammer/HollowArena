@@ -1,6 +1,6 @@
 --[[
   A contestable region is a region where a resource is given to
-  whichever player has the most number of units for 10 consecutive
+  whichever player has the most number of units for X consecutive
   seconds in the region
 
   -- NOTE: when making a contestable region, make sure exactly one
@@ -14,11 +14,21 @@ function map.Contestable_Create(wc3api, editor, commands, players, utility)
   local currentIndex = 1
   contestable.list = {}
   contestable.states = {
-    UNOWNED = 1,
+    OWNED = 1,
     CONTESTED = 2,
-    OWNED = 3,
   }
   local contestableCheckTime = 1.0
+
+  local function switchUnitToPlayer(unit, player)
+    -- local baseID = wc3api.GetUnitTypeId(theBuilding)
+    -- local basex = wc3api.GetUnitX(theBuilding)
+    -- local basey = wc3api.GetUnitY(theBuilding)
+    -- local baseface = wc3api.GetUnitFacing(theBuilding)
+    -- wc3api.RemoveUnit(theBuilding)
+    -- wc3api.RemoveUnit(wagonData.unit)
+    -- wagonData.unit = nil
+    -- wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
+  end
 
   -- Go through all rects and set them up
   for _,crect in pairs(editor.contestableRects) do
@@ -29,8 +39,11 @@ function map.Contestable_Create(wc3api, editor, commands, players, utility)
       cinfo.unitCount = cinfo.unitCount + 1
       -- The unit is the contestable unit
       cinfo.cUnit = wc3api.GetTriggerUnit()
-      cinfo.name = wc3api.GetUnitName(cinfo.cUnit)
-      cinfo.state = contestable.states.UNOWNED
+      -- cinfo.name = wc3api.GetUnitName(cinfo.cUnit) -- This is apparently broken?
+      cinfo.name = tostring(currentIndex)
+      cinfo.counter = 0
+      cinfo.owningPlayer = wc3api.GetPlayerNeutralPassive()
+      cinfo.state = contestable.states.OWNED
     end
 
     -- Create a group of units to count the contestable units
@@ -46,18 +59,43 @@ function map.Contestable_Create(wc3api, editor, commands, players, utility)
       cinfo.error = true
     end
 
-    -- table.insert(contestable.list, cinfo)
+    cinfo.crect = crect
     contestable.list[currentIndex] = cinfo
     currentIndex = currentIndex + 1
-    wc3api.DestroyGroup(cinfo.g)
-    cinfo.g = nil
+    -- wc3api.DestroyGroup(cinfo.g)
+    -- cinfo.g = nil
   end
 
   -- The main routine for updating contestable states
   local function periodicContestable()
     local function periodicContestable2()
+      -- Returns true if region is contested
+      local function checkRegion(cinfo)
+        local playerUnits = {}
+        local function countPlayerUnits()
+          local theUnit = wc3api.GetTriggerUnit()
+          print(theUnit)
+          local owningPlayer = wc3api.GetOwningPlayer(theUnit)
+          print(owningPlayer)
+          playerUnits[owningPlayer].count = playerUnits[owningPlayer].count + 1
+        end
+        wc3api.GroupEnumUnitsInRect(cinfo.g, crect, wc3api.constants.NO_FILTER)
+        wc3api.ForGroup(cinfo.g, countPlayerUnits)
+
+        local biggest = 0
+        local biggestPlayer = nil
+        for k,v in pairs(playerUnits) do
+          if v.count > biggest then
+            biggest = v.count
+            biggestPlayer = k
+          end
+        end
+      end
       for _, cinfo in pairs(contestable.list) do
-        -- print("hello")
+        if (cinfo.state == contestable.states.OWNED) then
+          local contested = checkRegion(cinfo)
+        elseif (cinfo.state == contestable.states.CONTESTED) then
+        end
       end
     end
     xpcall(periodicContestable2, print)
@@ -80,8 +118,14 @@ function map.Contestable_Create(wc3api, editor, commands, players, utility)
     local cmdString = wc3api.GetEventPlayerChatString()
     --
     local splitString = utility.Split(cmdString)
-    -- Get the actual parameter
+    -- Get the actual parameter. if tonumber returns nil,
+    -- then the user only typed "-contestable"
     local param = tonumber(table.remove(splitString))
+
+    if(type(param) == type(nil)) then
+      wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, #contestable.list)
+      return
+    end
 
     -- Do nothing if the parameter makes no sense
     if(param > #contestable.list) then
@@ -113,6 +157,8 @@ function map.Contestable_Tests(testFramework)
 
   local theCommand = {}
   local infoToDisplay = ""
+
+  -- Capture the contestable's periodicContestable
   local periodicContestable = {}
 
   function tsc.Setup()
@@ -135,6 +181,7 @@ function map.Contestable_Tests(testFramework)
     utility.Split = function(p1) end
     commands.Add = function(p1) end
     wc3api.GetUnitName = function(p1) end
+    wc3api.GetPlayerNeutralPassive = function() end
   end
 
   function tsc.Teardown() end
@@ -158,6 +205,9 @@ function map.Contestable_Tests(testFramework)
   end
 
   function normalSetup()
+    wc3api.GetPlayerNeutralPassive = function()
+      return "passive"
+    end
     wc3api.DisplayTextToPlayer = function(p1, p2, p3, p4)
       infoToDisplay = p4
     end
@@ -199,12 +249,12 @@ function map.Contestable_Tests(testFramework)
     theCommand:Handler()
   end
 
-  function tsc.Tests.ContestableStartsUnowned()
+  function tsc.Tests.ContestableStartsOwned()
     normalSetup()
 
     local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
 
-    assert(contestable.list[1].state == contestable.states.UNOWNED)
+    assert(contestable.list[1].state == contestable.states.OWNED)
   end
 
   function tsc.Tests.ContestableBecomesContested()
@@ -212,7 +262,36 @@ function map.Contestable_Tests(testFramework)
 
     local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
 
+    local units = {}
+    units[1] = {}
+    units[1].owningPlayer = "player1"
+    units[2] = {}
+    units[2].owningPlayer = "player1"
+    units[3] = {}
+    units[3].owningPlayer = "player2"
+
+    local unitIndex = 1
+    wc3api.GetTriggerUnit = function()
+      local returnUnit = units[unitIndex]
+      unitIndex = unitIndex + 1
+      return returnUnit
+    end
+
+    wc3api.GetOwningPlayer = function(unit)
+      return unit.owningPlayer
+    end
+
+    wc3api.ForGroup = function(p1, p2)
+      for k,v in pairs(units) do
+        p2()
+      end
+    end
+
+    assert(contestable.list[1].state == contestable.states.OWNED)
+
     periodicContestable()
+
+    assert(contestable.list[1].state == contestable.states.CONTESTED)
   end
 
 end
