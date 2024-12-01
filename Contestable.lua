@@ -74,12 +74,14 @@ function map.Contestable_Create(wc3api, editor, commands, players, utility)
         local playerUnits = {}
         local function countPlayerUnits()
           local theUnit = wc3api.GetTriggerUnit()
-          print(theUnit)
           local owningPlayer = wc3api.GetOwningPlayer(theUnit)
-          print(owningPlayer)
+          if(not playerUnits[owningPlayer]) then
+            playerUnits[owningPlayer] = {}
+            playerUnits[owningPlayer].count = 0
+          end
           playerUnits[owningPlayer].count = playerUnits[owningPlayer].count + 1
         end
-        wc3api.GroupEnumUnitsInRect(cinfo.g, crect, wc3api.constants.NO_FILTER)
+        wc3api.GroupEnumUnitsInRect(cinfo.g, cinfo.crect, wc3api.constants.NO_FILTER)
         wc3api.ForGroup(cinfo.g, countPlayerUnits)
 
         local biggest = 0
@@ -91,9 +93,11 @@ function map.Contestable_Create(wc3api, editor, commands, players, utility)
           end
         end
       end
+
+      -- Determine the next state
       for _, cinfo in pairs(contestable.list) do
+        local contested = checkRegion(cinfo)
         if (cinfo.state == contestable.states.OWNED) then
-          local contested = checkRegion(cinfo)
         elseif (cinfo.state == contestable.states.CONTESTED) then
         end
       end
@@ -286,6 +290,9 @@ function map.Contestable_Tests(testFramework)
         p2()
       end
     end
+
+    -- Remove crect2 to test a single crect
+    local crect2 = table.remove(contestable.list)
 
     assert(contestable.list[1].state == contestable.states.OWNED)
 
