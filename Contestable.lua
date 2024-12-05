@@ -14,13 +14,41 @@ function map.Contestable_Create(rect, wc3api)
     OWNED = 1,
     CONTESTED = 2,
   }
-  contestable.unitCount = 0
+  contestable.unitCount = 0 -- This is used to see if the rect starts with one unit
   contestable.error = false
+  contestable.owningPlayer = nil
 
   -- Check for contested status
-  function contestable.Check()
+  function contestable.Update()
+    local playerUnits = {}
+    local function CountUnits()
+      local function GetRelevantPlayer()
+        local theUnit = wc3api.GetTriggerUnit()
+        local owningPlayer = wc3api.GetOwningPlayer(theUnit)
+        return owningPlayer
+      end
+
+      local owningPlayer = GetRelevantPlayer()
+
+      if(not playerUnits[owningPlayer]) then
+        playerUnits[owningPlayer] = {}
+        playerUnits[owningPlayer].count = 0
+      end
+      playerUnits[owningPlayer].count = playerUnits[owningPlayer].count + 1
+    end
+
     wc3api.GroupEnumUnitsInRect(contestable.g, rect, wc3api.constants.NO_FILTER)
-    wc3api.ForGroup(contestable.g, GetContestableUnit)
+    wc3api.ForGroup(contestable.g, CountUnits)
+
+    local biggest = 0
+    local biggestPlayer = nil
+    for k,v in pairs(playerUnits) do
+      if v.count > biggest then
+        biggest = v.count
+        biggestPlayer = k
+      end
+    end
+    return playerUnits
   end
 
   local function GetContestableUnit()
@@ -38,7 +66,7 @@ function map.Contestable_Create(rect, wc3api)
   -- Collect each unit of the rect into the new group
   wc3api.GroupEnumUnitsInRect(contestable.g, rect, wc3api.constants.NO_FILTER)
 
-  -- For each unit in the group, call setupCrect
+  -- For each unit in the group, call GetContestableUnit
   wc3api.ForGroup(contestable.g, GetContestableUnit)
 
   if(contestable.unitCount ~= 1) then
@@ -228,6 +256,17 @@ function map.Contestable_Tests(testFramework)
 
   function tsc.Teardown() end
 
+  local function CreateNormalContestable()
+    local rect = {}
+
+    wc3api.ForGroup = function(p1, p2)
+      p2()
+    end
+    local contestable = map.Contestable_Create(rect, wc3api)
+
+    return contestable
+  end
+
   function tsc.Tests.CreateSingleContestableWithoutError()
     local rect = {}
 
@@ -251,6 +290,36 @@ function map.Contestable_Tests(testFramework)
     local contestable = map.Contestable_Create(rect, wc3api)
 
     assert(contestable.error == true)
+  end
+
+  function tsc.Tests.ContestableGoesToContested()
+    local contestable = CreateNormalContestable()
+
+    local units = {}
+    units[1] = {}
+    units[1].owningPlayer = "player1"
+    units[2] = {}
+    units[2].owningPlayer = "player2"
+
+    -- local index = 1
+    -- wc3api.GetTriggerUnit = function()
+    --   local returnUnit = units[index]
+    --   index = index + 1
+    --   return returnUnit
+    -- end
+
+    wc3api.GetOwningPlayer = function(unit)
+      return unit.owningPlayer
+    end
+
+    wc3api.ForGroup = function(p1, p2)
+      for k,v in pairs(units) do
+        p2()
+      end
+    end
+
+    local playerUnits = contestable.Update()
+    print(playerUnits["player1"].count)
   end
 
   -- function tsc.Tests.MoreThanOneUnitInRegionChecked()
