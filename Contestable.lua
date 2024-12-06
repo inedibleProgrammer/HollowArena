@@ -10,10 +10,7 @@
 
 function map.Contestable_Create(rect, wc3api)
   local contestable = {}
-  contestable.states = {
-    OWNED = 1,
-    CONTESTED = 2,
-  }
+  contestable.contested = false
   contestable.unitCount = 0 -- This is used to see if the rect starts with one unit
   contestable.error = false
   contestable.owningPlayer = nil
@@ -48,14 +45,23 @@ function map.Contestable_Create(rect, wc3api)
         biggestPlayer = k
       end
     end
-    return playerUnits
+
+    for k,v in pairs(playerUnits) do
+      if (v.count == biggest) and (k ~= biggestPlayer) then
+        biggestPlayer = wc3api.GetPlayerNeutralPassive()
+      end
+    end
+
+    return biggestPlayer
+
+    -- Return the player with the most units, or Neutral if contested
   end
 
   local function GetContestableUnit()
     contestable.unitCount = contestable.unitCount + 1
     contestable.theUnit = wc3api.GetTriggerUnit()
     contestable.owningPlayer = wc3api.GetPlayerNeutralPassive()
-    contestable.state = contestable.states.OWNED
+    contestable.contested = false
   end
 
   -- Begin the init part:
@@ -251,7 +257,7 @@ function map.Contestable_Tests(testFramework)
     utility.Split = function(p1) end
     commands.Add = function(p1) end
     wc3api.GetUnitName = function(p1) end
-    wc3api.GetPlayerNeutralPassive = function() end
+    wc3api.GetPlayerNeutralPassive = function() return "neutral" end
   end
 
   function tsc.Teardown() end
@@ -292,21 +298,19 @@ function map.Contestable_Tests(testFramework)
     assert(contestable.error == true)
   end
 
-  function tsc.Tests.ContestableGoesToContested()
+  function tsc.Tests.ContestableUpdateReturnsPlayer1()
     local contestable = CreateNormalContestable()
 
     local units = {}
     units[1] = {}
     units[1].owningPlayer = "player1"
-    units[2] = {}
-    units[2].owningPlayer = "player2"
 
-    -- local index = 1
-    -- wc3api.GetTriggerUnit = function()
-    --   local returnUnit = units[index]
-    --   index = index + 1
-    --   return returnUnit
-    -- end
+    local index = 1
+    wc3api.GetTriggerUnit = function()
+      local returnUnit = units[index]
+      index = index + 1
+      return returnUnit
+    end
 
     wc3api.GetOwningPlayer = function(unit)
       return unit.owningPlayer
@@ -318,8 +322,75 @@ function map.Contestable_Tests(testFramework)
       end
     end
 
-    local playerUnits = contestable.Update()
-    print(playerUnits["player1"].count)
+    local player = contestable.Update()
+
+    assert(player == "player1")
+  end
+
+  function tsc.Tests.ContestableUpdateReturnsPlayer3()
+    local contestable = CreateNormalContestable()
+
+    local units = {}
+    units[1] = {}
+    units[1].owningPlayer = "player1"
+    units[2] = {}
+    units[2].owningPlayer = "player2"
+    units[3] = {}
+    units[3].owningPlayer = "player3"
+    units[4] = {}
+    units[4].owningPlayer = "player3"
+
+    local index = 1
+    wc3api.GetTriggerUnit = function()
+      local returnUnit = units[index]
+      index = index + 1
+      return returnUnit
+    end
+
+    wc3api.GetOwningPlayer = function(unit)
+      return unit.owningPlayer
+    end
+
+    wc3api.ForGroup = function(p1, p2)
+      for k,v in pairs(units) do
+        p2()
+      end
+    end
+
+    local player = contestable.Update()
+
+    assert(player == "player3")
+  end
+
+  function tsc.Tests.ContestableUpdateReturnsNeutral()
+    local contestable = CreateNormalContestable()
+
+    local units = {}
+    units[1] = {}
+    units[1].owningPlayer = "player1"
+    units[2] = {}
+    units[2].owningPlayer = "player2"
+
+    local index = 1
+    wc3api.GetTriggerUnit = function()
+      local returnUnit = units[index]
+      index = index + 1
+      return returnUnit
+    end
+
+    wc3api.GetOwningPlayer = function(unit)
+      return unit.owningPlayer
+    end
+
+    wc3api.ForGroup = function(p1, p2)
+      for k,v in pairs(units) do
+        p2()
+      end
+    end
+
+    local player = contestable.Update()
+
+    assert(player == "neutral")
   end
 
   -- function tsc.Tests.MoreThanOneUnitInRegionChecked()
