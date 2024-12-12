@@ -31,8 +31,10 @@ function map.Contestable_Create(rect, wc3api)
         playerUnits[owningPlayer] = {}
         playerUnits[owningPlayer].count = 0
       end
+      -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here2")
       playerUnits[owningPlayer].count = playerUnits[owningPlayer].count + 1
     end
+    -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here1")
 
     wc3api.GroupEnumUnitsInRect(contestable.g, rect, wc3api.constants.NO_FILTER)
     wc3api.ForGroup(contestable.g, CountUnits)
@@ -48,10 +50,12 @@ function map.Contestable_Create(rect, wc3api)
 
     for k,v in pairs(playerUnits) do
       if (v.count == biggest) and (k ~= biggestPlayer) then
-        biggestPlayer = wc3api.GetPlayerNeutralPassive()
+        biggestPlayer = wc3api.Player(wc3api.GetPlayerNeutralPassive())
       end
     end
 
+    contestable.owningPlayer = biggestPlayer
+    wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, tostring(biggest))
     return biggestPlayer
 
     -- Return the player with the most units, or Neutral if contested
@@ -60,11 +64,14 @@ function map.Contestable_Create(rect, wc3api)
   local function GetContestableUnit()
     contestable.unitCount = contestable.unitCount + 1
     contestable.theUnit = wc3api.GetTriggerUnit()
-    contestable.owningPlayer = wc3api.GetPlayerNeutralPassive()
+    contestable.owningPlayer = wc3api.Player(wc3api.GetPlayerNeutralPassive())
     contestable.contested = false
   end
+  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, wc3api.GetPlayerName(wc3api.Player(wc3api.GetPlayerNeutralPassive())))
 
   -- Begin the init part:
+
+  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here1")
 
   -- Create a group to count the contestable units
   contestable.g = wc3api.CreateGroup()
@@ -75,112 +82,42 @@ function map.Contestable_Create(rect, wc3api)
   -- For each unit in the group, call GetContestableUnit
   wc3api.ForGroup(contestable.g, GetContestableUnit)
 
+  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here2")
+
   if(contestable.unitCount ~= 1) then
     contestable.error = true
   end
 
-
+  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here3")
   return contestable
 end
 
 
 function map.ContestableManager_Create(wc3api, editor, commands, players, utility)
-  local contestable = {}
+  local contestableManager = {}
   local currentIndex = 1
-  contestable.list = {}
+  contestableManager.list = {}
+  contestableManager.checkTime = 1.0
 
-  local contestableCheckTime = 1.0
+  local cts = map.Contestable_Create(editor.contestedShipyardRect1, wc3api)
 
-  local function switchUnitToPlayer(unit, player)
-    -- local baseID = wc3api.GetUnitTypeId(theBuilding)
-    -- local basex = wc3api.GetUnitX(theBuilding)
-    -- local basey = wc3api.GetUnitY(theBuilding)
-    -- local baseface = wc3api.GetUnitFacing(theBuilding)
-    -- wc3api.RemoveUnit(theBuilding)
-    -- wc3api.RemoveUnit(wagonData.unit)
-    -- wagonData.unit = nil
-    -- wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
-  end
+  contestableManager.list[1] = cts
 
-  -- Go through all rects and set them up
-  for _,crect in pairs(editor.contestableRects) do
-    -- cinfo contains the information about a contestable
-    local cinfo = {}
-    cinfo.unitCount = 0
-    local function setupCrect()
-      cinfo.unitCount = cinfo.unitCount + 1
-      -- The unit is the contestable unit
-      cinfo.cUnit = wc3api.GetTriggerUnit()
-      -- cinfo.name = wc3api.GetUnitName(cinfo.cUnit) -- This is apparently broken?
-      cinfo.name = tostring(currentIndex)
-      cinfo.counter = 0
-      cinfo.owningPlayer = wc3api.GetPlayerNeutralPassive()
-      cinfo.state = contestable.states.OWNED
-    end
 
-    -- Create a group of units to count the contestable units
-    cinfo.g = wc3api.CreateGroup()
-
-    -- Collect each unit of the rect into the new group
-    wc3api.GroupEnumUnitsInRect(cinfo.g, crect, wc3api.constants.NO_FILTER)
-
-    -- For each unit in the group, call setupCrect
-    wc3api.ForGroup(cinfo.g, setupCrect)
-
-    if(cinfo.unitCount ~= 1) then
-      cinfo.error = true
-    end
-
-    cinfo.crect = crect
-    contestable.list[currentIndex] = cinfo
-    currentIndex = currentIndex + 1
-    -- wc3api.DestroyGroup(cinfo.g)
-    -- cinfo.g = nil
-  end
 
   -- The main routine for updating contestable states
   local function periodicContestable()
     local function periodicContestable2()
-      -- Returns true if region is contested
-      local function checkRegion(cinfo)
-        local playerUnits = {}
-        local function countPlayerUnits()
-          local theUnit = wc3api.GetTriggerUnit()
-          local owningPlayer = wc3api.GetOwningPlayer(theUnit)
-          if(not playerUnits[owningPlayer]) then
-            playerUnits[owningPlayer] = {}
-            playerUnits[owningPlayer].count = 0
-          end
-          playerUnits[owningPlayer].count = playerUnits[owningPlayer].count + 1
-        end
-        wc3api.GroupEnumUnitsInRect(cinfo.g, cinfo.crect, wc3api.constants.NO_FILTER)
-        wc3api.ForGroup(cinfo.g, countPlayerUnits)
-
-        local biggest = 0
-        local biggestPlayer = nil
-        for k,v in pairs(playerUnits) do
-          if v.count > biggest then
-            biggest = v.count
-            biggestPlayer = k
-          end
-        end
-      end
-
-      -- Determine the next state
-      for _, cinfo in pairs(contestable.list) do
-        local contested = checkRegion(cinfo)
-        if (cinfo.state == contestable.states.OWNED) then
-        elseif (cinfo.state == contestable.states.CONTESTED) then
-        end
-      end
+      xpcall(contestableManager.list[1].Update, print)
     end
     xpcall(periodicContestable2, print)
   end
 
   -- Initialize the periodic trigger to update contestables
-  contestable.periodicTrigger = wc3api.CreateTrigger()
-  wc3api.TriggerAddAction(contestable.periodicTrigger, periodicContestable)
-  wc3api.TriggerRegisterTimerEvent(contestable.periodicTrigger, contestableCheckTime, wc3api.constants.IS_PERIODIC)
+  contestableManager.periodicTrigger = wc3api.CreateTrigger()
+  wc3api.TriggerAddAction(contestableManager.periodicTrigger, periodicContestable)
+  wc3api.TriggerRegisterTimerEvent(contestableManager.periodicTrigger, contestableManager.checkTime, wc3api.constants.IS_PERIODIC)
+
 
   -- Commands:
   -- contestable: displays number of contestables
@@ -199,7 +136,7 @@ function map.ContestableManager_Create(wc3api, editor, commands, players, utilit
     local param = tonumber(table.remove(splitString))
 
     if(type(param) == type(nil)) then
-      wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, #contestable.list)
+      wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, #contestableManager.list)
       return
     end
 
@@ -210,15 +147,15 @@ function map.ContestableManager_Create(wc3api, editor, commands, players, utilit
 
     local displayInfo = ""
 
-    local cinfo = contestable.list[param]
+    local cinfo = contestableManager.list[param]
 
-    displayInfo = displayInfo .. "[name: " .. cinfo.name .. "] - "
-    displayInfo = displayInfo .. "[state: " .. cinfo.state .. "] - "
+    -- displayInfo = displayInfo .. "[name: " .. cinfo.name .. "] - "
+    displayInfo = displayInfo .. "[owner: " .. cinfo.owningPlayer .. "] - "
     wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, displayInfo)
   end
   commands.Add(contestableDetailsCommand)
 
-  return contestable
+  return contestableManager
 end
 
 function map.Contestable_Tests(testFramework)
@@ -360,6 +297,7 @@ function map.Contestable_Tests(testFramework)
     local player = contestable.Update()
 
     assert(player == "player3")
+    
   end
 
   function tsc.Tests.ContestableUpdateReturnsNeutral()
@@ -391,6 +329,20 @@ function map.Contestable_Tests(testFramework)
     local player = contestable.Update()
 
     assert(player == "neutral")
+  end
+
+  function tsc.Tests.ContestableManagerCommand()
+    function map.Contestable_Create(p1, p2)
+      local cts = {}
+      cts.Update = function()
+      end
+      cts.name = "dummy"
+      cts.state = "nothing"
+      return cts
+    end
+    local cm = map.ContestableManager_Create(wc3api, editor, commands, players, utility)
+
+    assert(cm.list[1].name == "dummy")
   end
 
   -- function tsc.Tests.MoreThanOneUnitInRegionChecked()
