@@ -8,7 +8,108 @@
 ]]
 
 
-function map.Contestable_Create(rect, wc3api)
+
+
+
+function map.Contestable_Create(region, unitManager)
+  local contestable = {}
+  contestable.error = false
+  contestable.consecutiveCounter = 0
+  contestable.currentBiggestPlayer = nil
+
+  contestable.structure = unitManager.GetSingleUnitInRegionOrNil(region)
+
+  if(contestable.structure == nil) then
+    contestable.error = true
+  end
+
+  function contestable.Update()
+    local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
+    if biggestPlayer == contestable.currentBiggestPlayer then
+      contestable.consecutiveCounter = contestable.consecutiveCounter + 1
+    else
+      contestable.currentBiggestPlayer = biggestPlayer
+      contestable.consecutiveCounter = 1
+    end
+  end
+
+  return contestable
+end
+
+
+
+function map.Contestable_Tests(testFramework)
+  testFramework.Suites.ContestableSuite = {}
+  testFramework.Suites.ContestableSuite.Tests = {}
+  local tsc = testFramework.Suites.ContestableSuite
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+
+  function tsc.Tests.CreateSingleContestableWithError()
+    local region = {}
+    local unitManager = {}
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return nil
+    end
+    local contestable = map.Contestable_Create(region, unitManager)
+    assert(contestable.error == true)
+  end
+
+  function tsc.Tests.CreateSingleContestableWithoutError()
+    local region = {}
+    local unitManager = {}
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return "unit1"
+    end
+    local contestable = map.Contestable_Create(region, unitManager)
+    assert(contestable.error == false)
+  end
+
+  function tsc.Tests.ContestableUpdates()
+    local region = {}
+    local unitManager = {}
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return "unit1"
+    end
+    function unitManager.GetPlayerWithMostUnitsInRegion(region)
+      return "player1"
+    end
+    local contestable = map.Contestable_Create(region, unitManager)
+    local player = contestable.Update()
+
+    assert(contestable.consecutiveCounter == 1)
+  end
+
+  function tsc.Tests.ContestableResets()
+    local region = {}
+    local unitManager = {}
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return "unit1"
+    end
+    function unitManager.GetPlayerWithMostUnitsInRegion(region)
+      return "player1"
+    end
+    local contestable = map.Contestable_Create(region, unitManager)
+    local player = contestable.Update()
+    player = contestable.Update()
+
+    function unitManager.GetPlayerWithMostUnitsInRegion(region)
+      return "player2"
+    end
+
+    player = contestable.Update()
+
+    assert(contestable.consecutiveCounter == 1)
+  end
+end
+
+
+
+
+--[[
+function map.Contestable_Create(rect, wc3api, unitManager)
   local contestable = {}
   contestable.contested = false
   contestable.unitCount = 0 -- This is used to see if the rect starts with one unit
@@ -17,48 +118,7 @@ function map.Contestable_Create(rect, wc3api)
 
   -- Check for contested status
   function contestable.Update()
-    local playerUnits = {}
-    local function CountUnits()
-      local function GetRelevantPlayer()
-        local theUnit = wc3api.GetTriggerUnit()
-        local owningPlayer = wc3api.GetOwningPlayer(theUnit)
-        return owningPlayer
-      end
-
-      local owningPlayer = GetRelevantPlayer()
-
-      if(not playerUnits[owningPlayer]) then
-        playerUnits[owningPlayer] = {}
-        playerUnits[owningPlayer].count = 0
-      end
-      -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here2")
-      playerUnits[owningPlayer].count = playerUnits[owningPlayer].count + 1
-    end
-    -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here1")
-
-    wc3api.GroupEnumUnitsInRect(contestable.g, rect, wc3api.constants.NO_FILTER)
-    wc3api.ForGroup(contestable.g, CountUnits)
-
-    local biggest = 0
-    local biggestPlayer = nil
-    for k,v in pairs(playerUnits) do
-      if v.count > biggest then
-        biggest = v.count
-        biggestPlayer = k
-      end
-    end
-
-    for k,v in pairs(playerUnits) do
-      if (v.count == biggest) and (k ~= biggestPlayer) then
-        biggestPlayer = wc3api.Player(wc3api.GetPlayerNeutralPassive())
-      end
-    end
-
-    contestable.owningPlayer = biggestPlayer
-    wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, tostring(biggest))
-    return biggestPlayer
-
-    -- Return the player with the most units, or Neutral if contested
+    return unitManager.GetPlayerWithMostUnitsInRegion(rect)
   end
 
   local function GetContestableUnit()
@@ -461,3 +521,6 @@ function map.Contestable_Tests(testFramework)
   end
 
 end
+--]]
+
+
