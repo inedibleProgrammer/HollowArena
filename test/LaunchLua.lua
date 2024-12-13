@@ -23,6 +23,28 @@ function TestInit()
       -- Editor prepares region to have 3 red knights and 3 blue knights
       
     end
+    TestRegions1()
+
+    local function TestRegions2()
+      -- Editor prepares region to have 1 Neutral town hall
+      local contestable = map.Contestable_Create(editor.TestRegion2, unitManager, wc3api)
+      local function periodicContestable()
+        local function periodicContestable2()
+          debugTools.Display("h")
+          xpcall(contestable.Update, print)
+        end
+        xpcall(periodicContestable2, print)
+      end
+
+      local periodicTrigger = wc3api.CreateTrigger()
+      wc3api.TriggerAddAction(periodicTrigger, periodicContestable)
+      wc3api.TriggerRegisterTimerEvent(periodicTrigger, 1.0, wc3api.constants.IS_PERIODIC)
+
+
+      
+    end
+    TestRegions2()
+    
     return true
   end
   assert(TestRegions(), "Region tests did not finish.")

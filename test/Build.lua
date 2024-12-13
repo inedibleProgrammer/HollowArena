@@ -5,6 +5,7 @@ MAP_VERSION = "TEST"
 
 Build.SourceFiles = {
   "Editor.lua",
+  "../Contestable.lua",
   "../../Wc3Tools/Commands.lua",
   "../../Wc3Tools/Utility.lua",
   "../../Wc3Tools/GameClock.lua",

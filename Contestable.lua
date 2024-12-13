@@ -11,11 +11,13 @@
 
 
 
-function map.Contestable_Create(region, unitManager)
+function map.Contestable_Create(region, unitManager, wc3api)
   local contestable = {}
   contestable.error = false
+  contestable.owner = wc3api.GetPlayerNeutralPassive()
   contestable.consecutiveCounter = 0
   contestable.currentBiggestPlayer = nil
+  contestable.CHANGE_OWNER_COUNT = 9
 
   contestable.structure = unitManager.GetSingleUnitInRegionOrNil(region)
 
@@ -25,11 +27,18 @@ function map.Contestable_Create(region, unitManager)
 
   function contestable.Update()
     local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
+    print(biggestPlayer)
     if biggestPlayer == contestable.currentBiggestPlayer then
       contestable.consecutiveCounter = contestable.consecutiveCounter + 1
+
+      if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
+        contestable.owner = biggestPlayer
+        contestable.consecutiveCounter = 0
+        unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
+      end
     else
       contestable.currentBiggestPlayer = biggestPlayer
-      contestable.consecutiveCounter = 1
+      contestable.consecutiveCounter = 0
     end
   end
 
@@ -43,55 +52,84 @@ function map.Contestable_Tests(testFramework)
   testFramework.Suites.ContestableSuite.Tests = {}
   local tsc = testFramework.Suites.ContestableSuite
 
+  local unitManager = {}
+
+  function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+  end
+
   function tsc.Setup() end
   function tsc.Teardown() end
-
 
   function tsc.Tests.CreateSingleContestableWithError()
     local region = {}
     local unitManager = {}
+    local wc3api = {}
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return nil
     end
-    local contestable = map.Contestable_Create(region, unitManager)
+    function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+    end
+
+    local contestable = map.Contestable_Create(region, unitManager, wc3api)
     assert(contestable.error == true)
   end
 
   function tsc.Tests.CreateSingleContestableWithoutError()
     local region = {}
     local unitManager = {}
+    local wc3api = {}
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return "unit1"
     end
-    local contestable = map.Contestable_Create(region, unitManager)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api)
     assert(contestable.error == false)
   end
 
   function tsc.Tests.ContestableUpdates()
     local region = {}
     local unitManager = {}
+    local wc3api = {}
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return "unit1"
     end
     function unitManager.GetPlayerWithMostUnitsInRegion(region)
       return "player1"
     end
-    local contestable = map.Contestable_Create(region, unitManager)
+    function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+    end
+
+    local contestable = map.Contestable_Create(region, unitManager, wc3api)
     local player = contestable.Update()
 
-    assert(contestable.consecutiveCounter == 1)
+    assert(contestable.consecutiveCounter == 0)
   end
 
   function tsc.Tests.ContestableResets()
     local region = {}
     local unitManager = {}
+    local wc3api = {}
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return "unit1"
     end
     function unitManager.GetPlayerWithMostUnitsInRegion(region)
       return "player1"
     end
-    local contestable = map.Contestable_Create(region, unitManager)
+    function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+    end
+    
+    local contestable = map.Contestable_Create(region, unitManager, wc3api)
     local player = contestable.Update()
     player = contestable.Update()
 
@@ -101,8 +139,38 @@ function map.Contestable_Tests(testFramework)
 
     player = contestable.Update()
 
-    assert(contestable.consecutiveCounter == 1)
+    assert(contestable.consecutiveCounter == 0)
   end
+
+  function tsc.Tests.ContestableChangesOwner()
+    local region = {}
+    local unitManager = {}
+    local wc3api = {}
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return "unit1"
+    end
+    function unitManager.GetPlayerWithMostUnitsInRegion(region)
+      return "player1"
+    end
+    function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+    end
+
+    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local player = {}
+
+    assert(contestable.owner == "neutral")
+
+    for i=1, 10 do
+      player = contestable.Update()
+    end
+
+    assert(contestable.consecutiveCounter == 0)
+    assert(contestable.owner == "player1")
+  end
+
 end
 
 
