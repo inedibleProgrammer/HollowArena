@@ -5,17 +5,17 @@ MAP_VERSION = "TEST"
 
 Build.SourceFiles = {
   "Editor.lua",
-  "../Contestable.lua",
-  "../../Wc3Tools/Commands.lua",
-  "../../Wc3Tools/Utility.lua",
-  "../../Wc3Tools/GameClock.lua",
-  "../../Wc3Tools/Clock.lua",
-  "../../Wc3Tools/Players.lua",
-  "../../Wc3Tools/Logging.lua",
-  "../../Wc3Tools/DebugTools.lua",
-  "../../Wc3Tools/UnitManager.lua",
-  "../../Wc3Tools/Colors.lua",
-  "../../Wc3Tools/RealWc3Api.lua",
+  "../../Contestable.lua",
+  "../../../Wc3Tools/Commands.lua",
+  "../../../Wc3Tools/Utility.lua",
+  "../../../Wc3Tools/GameClock.lua",
+  "../../../Wc3Tools/Clock.lua",
+  "../../../Wc3Tools/Players.lua",
+  "../../../Wc3Tools/Logging.lua",
+  "../../../Wc3Tools/DebugTools.lua",
+  "../../../Wc3Tools/UnitManager.lua",
+  "../../../Wc3Tools/Colors.lua",
+  "../../../Wc3Tools/RealWc3Api.lua",
   "LaunchLua.lua", -- Must be last
 }
 

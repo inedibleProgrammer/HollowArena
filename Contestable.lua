@@ -27,13 +27,18 @@ function map.Contestable_Create(region, unitManager, wc3api)
 
   function contestable.Update()
     local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
-    print(biggestPlayer)
+
+    local msg = "Current biggest player: " .. tostring(biggestPlayer)
+    wc3api.BJDebugMsg(msg)
+
     if biggestPlayer == contestable.currentBiggestPlayer then
       contestable.consecutiveCounter = contestable.consecutiveCounter + 1
 
       if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
         contestable.owner = biggestPlayer
         contestable.consecutiveCounter = 0
+        -- local msg = "Converting to: " .. tostring(contestable.owner)
+        -- wc3api.BJDebugMsg(msg)
         unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
       end
     else
@@ -51,6 +56,8 @@ function map.Contestable_Tests(testFramework)
   testFramework.Suites.ContestableSuite = {}
   testFramework.Suites.ContestableSuite.Tests = {}
   local tsc = testFramework.Suites.ContestableSuite
+
+  function wc3api.BJDebugMsg(p1) end
 
   local unitManager = {}
 

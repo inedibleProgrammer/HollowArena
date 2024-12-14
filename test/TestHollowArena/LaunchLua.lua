@@ -27,14 +27,28 @@ function TestInit()
 
     local function TestRegions2()
       -- Editor prepares region to have 1 Neutral town hall
+      print("Player 0: " .. tostring(wc3api.Player(0)))
+      print("Player Neutral: " .. tostring(wc3api.Player(wc3api.GetPlayerNeutralPassive())))
+      local dummy = unitManager.CountUnitsPerPlayerInRegion(editor.TestRegion2)
+      assert(dummy[wc3api.Player(wc3api.GetPlayerNeutralPassive())] == 1, "neutral does not have one unit")
       local contestable = map.Contestable_Create(editor.TestRegion2, unitManager, wc3api)
       local function periodicContestable()
         local function periodicContestable2()
-          debugTools.Display("h")
+          -- debugTools.Display(tostring(contestable.consecutiveCounter))
           xpcall(contestable.Update, print)
+          local playerUnits = unitManager.CountUnitsPerPlayerInRegion(editor.TestRegion2)
+          local p0uc = playerUnits[wc3api.Player(0)]
+          local pnuc = playerUnits[wc3api.Player(wc3api.GetPlayerNeutralPassive())]
+          local msg1 = "P0 unit count: " .. tostring(p0uc)
+          local msg2 = "PN unit count: " .. tostring(pnuc)
+          wc3api.BJDebugMsg(msg1)
+          wc3api.BJDebugMsg(msg2)
         end
         xpcall(periodicContestable2, print)
       end
+
+      local townhall = unitManager.GetSingleUnitInRegionOrNil(editor.TestRegion2)
+      assert(townhall == contestable.structure, "TestRegions2: Townhall not structure")
 
       local periodicTrigger = wc3api.CreateTrigger()
       wc3api.TriggerAddAction(periodicTrigger, periodicContestable)
@@ -43,7 +57,7 @@ function TestInit()
 
       
     end
-    TestRegions2()
+    xpcall(TestRegions2, print)
     
     return true
   end

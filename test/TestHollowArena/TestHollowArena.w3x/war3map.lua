@@ -1,7 +1,7 @@
 gg_rct_TestRegion1 = nil
+gg_rct_TestRegion2 = nil
 gg_trg_LaunchLua = nil
 gg_trg_Melee_Initialization = nil
-gg_rct_TestRegion2 = nil
 function InitGlobals()
 end
 
@@ -67,12 +67,12 @@ function CreateRegions()
 local we
 
 gg_rct_TestRegion1 = Rect(-2912.0, 2176.0, -2304.0, 2720.0)
-gg_rct_TestRegion2 = Rect(-2176.0, 2176.0, -1568.0, 2720.0)
+gg_rct_TestRegion2 = Rect(-2176.0, 2176.0, -1440.0, 3040.0)
 end
 
 map = {}
 map.version = "TEST"
-map.commit = "8a3722280edc4f13feadf5e1568f6986965cc353"
+map.commit = "3f940258a2511280f705d28fba24103cecaf73d1"
 --luacheck: push ignore
 
 -- Interface between the scripting code and the wc3 editor
@@ -80,7 +80,7 @@ function map.Editor_Create()
   local editor = {}
 
   editor.TestRegion1 = gg_rct_TestRegion1
-  editor.TestRegion1 = gg_rct_TestRegion2
+  editor.TestRegion2 = gg_rct_TestRegion2
 
   return editor
 end
@@ -115,13 +115,18 @@ function map.Contestable_Create(region, unitManager, wc3api)
 
   function contestable.Update()
     local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
-    print(biggestPlayer)
+
+    local msg = "Current biggest player: " .. tostring(biggestPlayer)
+    wc3api.BJDebugMsg(msg)
+
     if biggestPlayer == contestable.currentBiggestPlayer then
       contestable.consecutiveCounter = contestable.consecutiveCounter + 1
 
       if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
         contestable.owner = biggestPlayer
         contestable.consecutiveCounter = 0
+        -- local msg = "Converting to: " .. tostring(contestable.owner)
+        -- wc3api.BJDebugMsg(msg)
         unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
       end
     else
@@ -139,6 +144,8 @@ function map.Contestable_Tests(testFramework)
   testFramework.Suites.ContestableSuite = {}
   testFramework.Suites.ContestableSuite.Tests = {}
   local tsc = testFramework.Suites.ContestableSuite
+
+  function wc3api.BJDebugMsg(p1) end
 
   local unitManager = {}
 
@@ -1559,13 +1566,13 @@ function map.UnitManager_Create(wc3api, logging, commands)
 
 
   function unitManager.GetPlayerWithMostUnitsInRegion(region)
-    local biggestPlayer = wc3api.GetPlayerNeutralPassive()
+    local biggestPlayer = wc3api.Player(wc3api.GetPlayerNeutralPassive())
     local biggestCount = 0
     local playerUnits = unitManager.CountUnitsPerPlayerInRegion(region)
 
     for player,count in pairs(playerUnits) do
       if biggestCount == count then
-        biggestPlayer = wc3api.GetPlayerNeutralPassive()
+        biggestPlayer = wc3api.Player(wc3api.GetPlayerNeutralPassive())
       end
       if count > biggestCount then
         biggestPlayer = player
@@ -1626,6 +1633,20 @@ function map.UnitManager_Create(wc3api, logging, commands)
   function unitManager.ConvertUnitToOtherPlayer(unit, otherPlayer)
     wc3api.SetUnitOwner(unit, otherPlayer, wc3api.constants.CHANGE_COLOR)
   end
+
+
+  --[[ TODO: Implement a command to get useful info
+  -- Commands
+  local getUnitRegionInfo = {}
+  getUnitRegionInfo.activator = "-region"
+  getUnitRegionInfo.users = {wc3api.Player(0)}
+  -- getUnitRegionInfo.dummyVar = 0
+  function getUnitRegionInfo:Handler()
+    local cmdString = wc3api.GetEventPlayerChatString()
+    local splitString = utility.Split(cmdString)
+  end
+    commands.Add(getUnitRegionInfo)
+  --]]
 
   return unitManager
 end
@@ -1922,6 +1943,7 @@ function map.RealWc3Api_Create()
 
 
   function realWc3Api.GetPlayerNeutralPassive()
+    -- NOTE: This returns the integer 27
     return GetPlayerNeutralPassive()
   end
 
@@ -2898,14 +2920,28 @@ function TestInit()
 
     local function TestRegions2()
       -- Editor prepares region to have 1 Neutral town hall
+      print("Player 0: " .. tostring(wc3api.Player(0)))
+      print("Player Neutral: " .. tostring(wc3api.Player(wc3api.GetPlayerNeutralPassive())))
+      local dummy = unitManager.CountUnitsPerPlayerInRegion(editor.TestRegion2)
+      assert(dummy[wc3api.Player(wc3api.GetPlayerNeutralPassive())] == 1, "neutral does not have one unit")
       local contestable = map.Contestable_Create(editor.TestRegion2, unitManager, wc3api)
       local function periodicContestable()
         local function periodicContestable2()
-          debugTools.Display("h")
+          -- debugTools.Display(tostring(contestable.consecutiveCounter))
           xpcall(contestable.Update, print)
+          local playerUnits = unitManager.CountUnitsPerPlayerInRegion(editor.TestRegion2)
+          local p0uc = playerUnits[wc3api.Player(0)]
+          local pnuc = playerUnits[wc3api.Player(wc3api.GetPlayerNeutralPassive())]
+          local msg1 = "P0 unit count: " .. tostring(p0uc)
+          local msg2 = "PN unit count: " .. tostring(pnuc)
+          wc3api.BJDebugMsg(msg1)
+          wc3api.BJDebugMsg(msg2)
         end
         xpcall(periodicContestable2, print)
       end
+
+      local townhall = unitManager.GetSingleUnitInRegionOrNil(editor.TestRegion2)
+      assert(townhall == contestable.structure, "TestRegions2: Townhall not structure")
 
       local periodicTrigger = wc3api.CreateTrigger()
       wc3api.TriggerAddAction(periodicTrigger, periodicContestable)
@@ -2914,7 +2950,7 @@ function TestInit()
 
       
     end
-    TestRegions2()
+    xpcall(TestRegions2, print)
     
     return true
   end
