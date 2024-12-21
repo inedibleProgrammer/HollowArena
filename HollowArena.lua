@@ -12,10 +12,12 @@ function map.HollowArena_Initialize()
   local unitManager = map.UnitManager_Create(wc3api, logging, commands)
   local editor = map.Editor_Create()
   local debugTools = map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
+  local triggers = map.Triggers_Create(wc3api)
 
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
 
+  -- TODO: Make this some kind of build option
   for _,player in pairs(players.list) do
     if(player.name == "WorldEdit" or player.name == "MasterLich#11192") then
       logging.SetPlayerOptionByID(player.id, logging.types.ALL)
@@ -34,6 +36,6 @@ function map.HollowArena_Initialize()
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wormwood = map.Wormwood_Create(wc3api, editor, players)
-  local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
+  local contestableManager = map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging)
 end
 
