@@ -42,7 +42,7 @@ function map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
         contestable.consecutiveCounter = 0
         -- unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
         -- contestableLog.message = "Contestable Owner: " .. tostring(contestable.owner)
-        logging.Write(contestableLog)
+        -- logging.Write(contestableLog)
       end
     else
       contestable.currentBiggestPlayer = biggestPlayer
