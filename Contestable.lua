@@ -11,7 +11,7 @@
 
 
 
-function map.Contestable_Create(region, unitManager, wc3api)
+function map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
   local contestable = {}
   contestable.error = false
   contestable.owner = wc3api.GetPlayerNeutralPassive()
@@ -25,11 +25,14 @@ function map.Contestable_Create(region, unitManager, wc3api)
     contestable.error = true
   end
 
+  local contestableLog = {}
+  contestableLog.type = logging.types.DEBUG
+
   function contestable.Update()
     local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
 
-    local msg = "Current biggest player: " .. tostring(biggestPlayer)
-    wc3api.BJDebugMsg(msg)
+    -- contestableLog.message = "biggestPlayer: " .. tostring(biggestPlayer)
+    -- logging.Write(contestableLog)
 
     if biggestPlayer == contestable.currentBiggestPlayer then
       contestable.consecutiveCounter = contestable.consecutiveCounter + 1
@@ -37,9 +40,9 @@ function map.Contestable_Create(region, unitManager, wc3api)
       if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
         contestable.owner = biggestPlayer
         contestable.consecutiveCounter = 0
-        -- local msg = "Converting to: " .. tostring(contestable.owner)
-        -- wc3api.BJDebugMsg(msg)
-        unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
+        -- unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
+        -- contestableLog.message = "Contestable Owner: " .. tostring(contestable.owner)
+        logging.Write(contestableLog)
       end
     else
       contestable.currentBiggestPlayer = biggestPlayer
@@ -51,15 +54,47 @@ function map.Contestable_Create(region, unitManager, wc3api)
 end
 
 
+function map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging)
+  local contestableManager = {}
+  contestableManager.PERIOD = 1.0
+  contestableManager.list = {}
+
+  -- TODO: Use "region" consistently
+  for _,rect in pairs(editor.contestableRects) do
+    local contestable = map.Contestable_Create(rect, unitManager, wc3api, triggers, logging)
+    table.insert(contestableManager.list, contestable)
+  end
+
+  local function CheckAllContestables()
+    local function CheckAllContestables2()
+      for k,contestable in pairs(contestableManager.list) do
+        contestable.Update()
+      end
+    end
+    xpcall(CheckAllContestables2, print)
+  end
+
+  local periodicTrigger = triggers.CreatePeriodicTrigger(contestableManager.PERIOD, CheckAllContestables)
+
+
+  return contestableManager
+end
+
+
 
 function map.Contestable_Tests(testFramework)
   testFramework.Suites.ContestableSuite = {}
   testFramework.Suites.ContestableSuite.Tests = {}
   local tsc = testFramework.Suites.ContestableSuite
 
-  function wc3api.BJDebugMsg(p1) end
+  -- function wc3api.BJDebugMsg(p1) end
 
   local unitManager = {}
+  local triggers = {}
+  local logging = {}
+  logging.types = {}
+  logging.types.DEBUG = 1
+  function logging.Write(p1) end
 
   function unitManager.ConvertUnitToOtherPlayer(p1, p2)
   end
@@ -80,7 +115,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
     assert(contestable.error == true)
   end
 
@@ -94,7 +129,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return "unit1"
     end
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
     assert(contestable.error == false)
   end
 
@@ -114,7 +149,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
     local player = contestable.Update()
 
     assert(contestable.consecutiveCounter == 0)
@@ -136,7 +171,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
     
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
     local player = contestable.Update()
     player = contestable.Update()
 
@@ -165,7 +200,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
     local player = {}
 
     assert(contestable.owner == "neutral")
@@ -176,6 +211,15 @@ function map.Contestable_Tests(testFramework)
 
     assert(contestable.consecutiveCounter == 0)
     assert(contestable.owner == "player1")
+  end
+
+  function tsc.Tests.ContestableManager()
+    local editor = {}
+    editor.region1 = {}
+    editor.region2 = {}
+
+
+    -- local contestableManager = ContestableManager_Create(region, editor, unitManager, wc3api, triggers)
   end
 
 end

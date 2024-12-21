@@ -21,6 +21,7 @@ Build.SourceFiles = {
   "../Wc3Tools/UnitManager.lua",
   "../Wc3Tools/Colors.lua",
   "../Wc3Tools/RealWc3Api.lua",
+  "../Wc3Tools/Triggers.lua",
   "LaunchLua.lua", -- Must be last
 }
 
