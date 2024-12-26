@@ -3,7 +3,6 @@
 -- Interface between the scripting code and the wc3 editor
 function map.Editor_Create()
   local editor = {}
-
   editor.contestableRects = {}
 
   editor.startRect = gg_rct_startRect
@@ -11,7 +10,6 @@ function map.Editor_Create()
   editor.wormwoodPlayerID = 20
 
   editor.contestedShipyardRect1 = gg_rct_contestedShipyardRect1
-
   table.insert(editor.contestableRects, editor.contestedShipyardRect1)
 
 

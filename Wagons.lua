@@ -28,6 +28,16 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
             wagonData.built = true
 
+            if baseID == wc3api.FourCC("htow") then
+              wagonData.race = "human"
+            elseif baseID == wc3api.FourCC("ogre") then
+              wagonData.race = "orc"
+            elseif baseID == wc3api.FourCC("unpl") then
+              wagonData.race = "undead"
+            elseif baseID == wc3api.FourCC("etol") then
+              wagonData.race = "elf"
+            end
+
             local wagonLog = {}
             wagonLog.type = logging.types.INFO
             wagonLog.message = playerName .. " builds town hall"
@@ -81,6 +91,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
 
   return wagons
 end
+
+
 
 
 

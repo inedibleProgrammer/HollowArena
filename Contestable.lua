@@ -11,7 +11,7 @@
 
 
 
-function map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
+function map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
   local contestable = {}
   contestable.error = false
   contestable.owner = wc3api.GetPlayerNeutralPassive()
@@ -29,6 +29,25 @@ function map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
   contestableLog.type = logging.types.DEBUG
 
   function contestable.Update()
+    local function ConvertShipyard()
+      for _,wagonData in pairs(wagons.list) do
+        if contestable.owner == wagonData.playerref then
+          if wagonData.race == "human" then
+            unitManager.ConvertUnitToOtherUnit(contestable.structure, "h001")
+          elseif wagonData.race == "orc" then
+            unitManager.ConvertUnitToOtherUnit(contestable.structure, "o000")
+          elseif wagonData.race == "undead" then
+            unitManager.ConvertUnitToOtherUnit(contestable.structure, "u000")
+          elseif wagonData.race == "elf" then
+            unitManager.ConvertUnitToOtherUnit(contestable.structure, "e000")
+          else
+            unitManager.ConvertUnitToOtherUnit(contestable.structure, "h001")
+          end
+        end
+      end
+    end
+
+
     local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
 
     -- contestableLog.message = "biggestPlayer: " .. tostring(biggestPlayer)
@@ -40,7 +59,10 @@ function map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
       if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
         contestable.owner = biggestPlayer
         contestable.consecutiveCounter = 0
-        -- unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
+        if(contestable.type == "shipyard") then
+          ConvertShipyard()
+        end
+        unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
         -- contestableLog.message = "Contestable Owner: " .. tostring(contestable.owner)
         -- logging.Write(contestableLog)
       end
@@ -54,14 +76,19 @@ function map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
 end
 
 
-function map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging)
+function map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
   local contestableManager = {}
   contestableManager.PERIOD = 1.0
   contestableManager.list = {}
 
   -- TODO: Use "region" consistently
   for _,rect in pairs(editor.contestableRects) do
-    local contestable = map.Contestable_Create(rect, unitManager, wc3api, triggers, logging)
+    local contestable = map.Contestable_Create(rect, unitManager, wc3api, triggers, logging, wagons)
+
+    if rect == editor.contestedShipyardRect1 then
+      contestable.type = "shipyard"
+    end
+
     table.insert(contestableManager.list, contestable)
   end
 
@@ -96,6 +123,8 @@ function map.Contestable_Tests(testFramework)
   logging.types.DEBUG = 1
   function logging.Write(p1) end
 
+  local wagons = {}
+
   function unitManager.ConvertUnitToOtherPlayer(p1, p2)
   end
 
@@ -115,7 +144,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     assert(contestable.error == true)
   end
 
@@ -129,7 +158,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return "unit1"
     end
-    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     assert(contestable.error == false)
   end
 
@@ -149,7 +178,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     local player = contestable.Update()
 
     assert(contestable.consecutiveCounter == 0)
@@ -171,7 +200,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
     
-    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     local player = contestable.Update()
     player = contestable.Update()
 
@@ -200,7 +229,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     local player = {}
 
     assert(contestable.owner == "neutral")
@@ -211,6 +240,45 @@ function map.Contestable_Tests(testFramework)
 
     assert(contestable.consecutiveCounter == 0)
     assert(contestable.owner == "player1")
+  end
+
+  function tsc.Tests.ContestableConvertsShipyard()
+    local region = {}
+    local unitManager = {}
+    local wc3api = {}
+    local wagons = {}
+    wagons.list = {}
+    local firstWagon = {}
+    firstWagon.playerref = "player1"
+    firstWagon.race = "elf"
+    table.insert(wagons.list, firstWagon)
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return "unit1"
+    end
+    function unitManager.GetPlayerWithMostUnitsInRegion(region)
+      return "player1"
+    end
+    function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+    end
+
+
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
+    contestable.type = "shipyard"
+
+    function unitManager.ConvertUnitToOtherUnit(p1, p2)
+      contestable.structure = p2
+    end
+
+    assert(contestable.owner == "neutral")
+
+    for i=1, 10 do
+      player = contestable.Update()
+    end
+
+    assert(contestable.structure == "e000")
   end
 
   function tsc.Tests.ContestableManager()
