@@ -2,6 +2,11 @@ gg_rct_TestRegion1 = nil
 gg_rct_TestRegion2 = nil
 gg_trg_LaunchLua = nil
 gg_trg_Melee_Initialization = nil
+gg_rct_contestedShipyard1 = nil
+gg_rct_startRect = nil
+gg_trg_MakeUnitBuild = nil
+gg_unit_hkni_0016 = nil
+gg_unit_hpea_0020 = nil
 function InitGlobals()
 end
 
@@ -25,6 +30,7 @@ u = BlzCreateUnitWithSkin(p, FourCC("hkni"), -851.3, 2209.4, 273.733, FourCC("hk
 u = BlzCreateUnitWithSkin(p, FourCC("hkni"), -772.5, 2204.5, 142.365, FourCC("hkni"))
 u = BlzCreateUnitWithSkin(p, FourCC("hkni"), -898.4, 2101.6, 4.548, FourCC("hkni"))
 u = BlzCreateUnitWithSkin(p, FourCC("hkni"), -789.0, 2101.6, 299.299, FourCC("hkni"))
+u = BlzCreateUnitWithSkin(p, FourCC("hpea"), -726.8, 2493.7, 183.862, FourCC("hpea"))
 end
 
 function CreateUnitsForPlayer1()
@@ -47,6 +53,7 @@ local t
 local life
 
 u = BlzCreateUnitWithSkin(p, FourCC("htow"), -1856.0, 2496.0, 270.000, FourCC("htow"))
+u = BlzCreateUnitWithSkin(p, FourCC("h001"), -2400.0, 1504.0, 270.000, FourCC("h001"))
 end
 
 function CreatePlayerBuildings()
@@ -68,19 +75,27 @@ local we
 
 gg_rct_TestRegion1 = Rect(-2912.0, 2176.0, -2304.0, 2720.0)
 gg_rct_TestRegion2 = Rect(-2176.0, 2176.0, -1440.0, 3040.0)
+gg_rct_contestedShipyard1 = Rect(-2880.0, 1056.0, -2240.0, 1664.0)
+gg_rct_startRect = Rect(-2144.0, 1056.0, -1376.0, 1664.0)
 end
 
 map = {}
 map.version = "TEST"
-map.commit = "3f940258a2511280f705d28fba24103cecaf73d1"
+map.commit = "848cb0dfdb9a5c16ed8cecbe21da40b6491a0ea7"
 --luacheck: push ignore
 
 -- Interface between the scripting code and the wc3 editor
 function map.Editor_Create()
   local editor = {}
+  editor.contestableRects = {}
+
+  editor.startRect = gg_rct_startRect
 
   editor.TestRegion1 = gg_rct_TestRegion1
   editor.TestRegion2 = gg_rct_TestRegion2
+
+  editor.contestedShipyard1 = gg_rct_contestedShipyard1
+  table.insert(editor.contestableRects, editor.contestedShipyard1)
 
   return editor
 end
@@ -99,7 +114,7 @@ end
 
 
 
-function map.Contestable_Create(region, unitManager, wc3api)
+function map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
   local contestable = {}
   contestable.error = false
   contestable.owner = wc3api.GetPlayerNeutralPassive()
@@ -113,11 +128,33 @@ function map.Contestable_Create(region, unitManager, wc3api)
     contestable.error = true
   end
 
+  local contestableLog = {}
+  contestableLog.type = logging.types.DEBUG
+
   function contestable.Update()
+    local function ConvertShipyard()
+      for _,wagonData in pairs(wagons.list) do
+        if contestable.owner == wagonData.playerref then
+          if wagonData.race == "human" then
+            contestable.structure = unitManager.ConvertUnitToOtherUnit(contestable.structure, wc3api.FourCC("h001"))
+          elseif wagonData.race == "orc" then
+            contestable.structure = unitManager.ConvertUnitToOtherUnit(contestable.structure, wc3api.FourCC("o000"))
+          elseif wagonData.race == "undead" then
+            contestable.structure = unitManager.ConvertUnitToOtherUnit(contestable.structure, wc3api.FourCC("u000"))
+          elseif wagonData.race == "elf" then
+            contestable.structure = unitManager.ConvertUnitToOtherUnit(contestable.structure, wc3api.FourCC("e000"))
+          else
+            contestable.structure = unitManager.ConvertUnitToOtherUnit(contestable.structure, wc3api.FourCC("h001"))
+          end
+        end
+      end
+    end
+
+
     local biggestPlayer = unitManager.GetPlayerWithMostUnitsInRegion(region)
 
-    local msg = "Current biggest player: " .. tostring(biggestPlayer)
-    wc3api.BJDebugMsg(msg)
+    -- contestableLog.message = "biggestPlayer: " .. tostring(biggestPlayer)
+    -- logging.Write(contestableLog)
 
     if biggestPlayer == contestable.currentBiggestPlayer then
       contestable.consecutiveCounter = contestable.consecutiveCounter + 1
@@ -125,9 +162,12 @@ function map.Contestable_Create(region, unitManager, wc3api)
       if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
         contestable.owner = biggestPlayer
         contestable.consecutiveCounter = 0
-        -- local msg = "Converting to: " .. tostring(contestable.owner)
-        -- wc3api.BJDebugMsg(msg)
+        if(contestable.type == "shipyard") then
+          ConvertShipyard()
+        end
         unitManager.ConvertUnitToOtherPlayer(contestable.structure, contestable.owner)
+        -- contestableLog.message = "Contestable Owner: " .. tostring(contestable.owner)
+        -- logging.Write(contestableLog)
       end
     else
       contestable.currentBiggestPlayer = biggestPlayer
@@ -139,15 +179,73 @@ function map.Contestable_Create(region, unitManager, wc3api)
 end
 
 
+function map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
+  local contestableManager = {}
+  contestableManager.PERIOD = 1.0
+  contestableManager.list = {}
+
+  -- TODO: Use "region" consistently
+  for _,rect in pairs(editor.contestableRects) do
+    local contestable = map.Contestable_Create(rect, unitManager, wc3api, triggers, logging, wagons)
+
+    if rect == editor.contestedShipyard1 or
+      rect == editor.contestedShipyard2 or
+      rect == editor.contestedShipyard3 or
+      rect == editor.contestedShipyard4 or
+      rect == editor.contestedShipyard5 or
+      rect == editor.contestedShipyard6 or
+      rect == editor.contestedShipyard7 or
+      rect == editor.contestedShipyard8 or
+      rect == editor.contestedShipyard9 or
+      rect == editor.contestedShipyard10
+    then
+      contestable.type = "shipyard"
+    end
+
+    table.insert(contestableManager.list, contestable)
+  end
+
+  local function CheckAllContestables()
+    local function CheckAllContestables2()
+      for k,contestable in pairs(contestableManager.list) do
+        contestable.Update()
+      end
+    end
+    xpcall(CheckAllContestables2, print)
+  end
+
+  local periodicTrigger = triggers.CreatePeriodicTrigger(contestableManager.PERIOD, CheckAllContestables)
+
+
+  return contestableManager
+end
+
+
 
 function map.Contestable_Tests(testFramework)
   testFramework.Suites.ContestableSuite = {}
   testFramework.Suites.ContestableSuite.Tests = {}
   local tsc = testFramework.Suites.ContestableSuite
 
-  function wc3api.BJDebugMsg(p1) end
+  -- function wc3api.BJDebugMsg(p1) end
 
+  local wc3api = {}
   local unitManager = {}
+  local triggers = {}
+  local logging = {}
+  logging.types = {}
+  logging.types.DEBUG = 1
+  function logging.Write(p1) end
+
+  local wagons = {}
+  wagons.list = {}
+  local firstWagon = {}
+  firstWagon.playerref = "player1"
+  firstWagon.race = "elf"
+
+  function wc3api.FourCC(p1)
+    return p1
+  end
 
   function unitManager.ConvertUnitToOtherPlayer(p1, p2)
   end
@@ -158,7 +256,6 @@ function map.Contestable_Tests(testFramework)
   function tsc.Tests.CreateSingleContestableWithError()
     local region = {}
     local unitManager = {}
-    local wc3api = {}
     function wc3api.GetPlayerNeutralPassive()
       return "neutral"
     end
@@ -168,7 +265,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     assert(contestable.error == true)
   end
 
@@ -182,14 +279,13 @@ function map.Contestable_Tests(testFramework)
     function unitManager.GetSingleUnitInRegionOrNil(region)
       return "unit1"
     end
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     assert(contestable.error == false)
   end
 
   function tsc.Tests.ContestableUpdates()
     local region = {}
     local unitManager = {}
-    local wc3api = {}
     function wc3api.GetPlayerNeutralPassive()
       return "neutral"
     end
@@ -202,7 +298,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     local player = contestable.Update()
 
     assert(contestable.consecutiveCounter == 0)
@@ -211,7 +307,6 @@ function map.Contestable_Tests(testFramework)
   function tsc.Tests.ContestableResets()
     local region = {}
     local unitManager = {}
-    local wc3api = {}
     function wc3api.GetPlayerNeutralPassive()
       return "neutral"
     end
@@ -224,7 +319,7 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
     
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
     local player = contestable.Update()
     player = contestable.Update()
 
@@ -240,7 +335,6 @@ function map.Contestable_Tests(testFramework)
   function tsc.Tests.ContestableChangesOwner()
     local region = {}
     local unitManager = {}
-    local wc3api = {}
     function wc3api.GetPlayerNeutralPassive()
       return "neutral"
     end
@@ -253,7 +347,12 @@ function map.Contestable_Tests(testFramework)
     function unitManager.ConvertUnitToOtherPlayer(p1, p2)
     end
 
-    local contestable = map.Contestable_Create(region, unitManager, wc3api)
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
+    contestable.type = "shipyard"
+    function unitManager.ConvertUnitToOtherUnit(p1, p2)
+      contestable.structure = p2
+    end
+
     local player = {}
 
     assert(contestable.owner == "neutral")
@@ -266,427 +365,240 @@ function map.Contestable_Tests(testFramework)
     assert(contestable.owner == "player1")
   end
 
+  function tsc.Tests.ContestableConvertsShipyard()
+    local region = {}
+    local unitManager = {}
+    local wagons = {}
+    wagons.list = {}
+    local firstWagon = {}
+    firstWagon.playerref = "player1"
+    firstWagon.race = "elf"
+    table.insert(wagons.list, firstWagon)
+    function wc3api.GetPlayerNeutralPassive()
+      return "neutral"
+    end
+    function unitManager.GetSingleUnitInRegionOrNil(region)
+      return "unit1"
+    end
+    function unitManager.GetPlayerWithMostUnitsInRegion(region)
+      return "player1"
+    end
+    function unitManager.ConvertUnitToOtherPlayer(p1, p2)
+    end
+
+
+    local contestable = map.Contestable_Create(region, unitManager, wc3api, triggers, logging, wagons)
+    contestable.type = "shipyard"
+
+    function unitManager.ConvertUnitToOtherUnit(p1, p2)
+      contestable.structure = p2
+      return p2
+    end
+
+    assert(contestable.owner == "neutral")
+
+    for i=1, 10 do
+      player = contestable.Update()
+    end
+    assert(contestable.structure == "e000")
+  end
+
+  function tsc.Tests.ContestableManager()
+    local editor = {}
+    editor.region1 = {}
+    editor.region2 = {}
+
+
+    -- local contestableManager = ContestableManager_Create(region, editor, unitManager, wc3api, triggers)
+  end
+
+end
+
+
+function map.Wagons_Create(wc3api, players, commands, logging, editor)
+  local wagons = {}
+  wagons.list = {}
+
+  local startRectInfo = {}
+  startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
+  startRectInfo.centery = wc3api.GetRectCenterY(editor.startRect)
+
+  function wagons.WagonBuildingAction()
+    local function WagonBuildingAction2()
+      -- GetTriggerUnit() returns the building instead of the builder BUG
+      -- https://www.hiveworkshop.com/threads/how-to-get-building-unit.274883/
+      local theBuilding = wc3api.GetConstructingStructure()
+      local thePlayer = wc3api.GetTriggerPlayer()
+      local playerName = wc3api.GetPlayerName(thePlayer)
+
+      for _,wagonData in pairs(wagons.list) do
+        if(wagonData.built == true) then return end
+        if(thePlayer == wagonData.playerref) then
+          if(wc3api.IsUnitInRange(wagonData.unit, theBuilding, 120)) then
+            local baseID = wc3api.GetUnitTypeId(theBuilding)
+            local basex = wc3api.GetUnitX(theBuilding)
+            local basey = wc3api.GetUnitY(theBuilding)
+            local baseface = wc3api.GetUnitFacing(theBuilding)
+            wc3api.RemoveUnit(theBuilding)
+            wc3api.RemoveUnit(wagonData.unit)
+            wagonData.unit = nil
+            wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
+            wagonData.built = true
+
+            if baseID == wc3api.FourCC("htow") then
+              wagonData.race = "human"
+            elseif baseID == wc3api.FourCC("ogre") then
+              wagonData.race = "orc"
+            elseif baseID == wc3api.FourCC("unpl") then
+              wagonData.race = "undead"
+            elseif baseID == wc3api.FourCC("etol") then
+              wagonData.race = "elf"
+            end
+
+            local wagonLog = {}
+            wagonLog.type = logging.types.INFO
+            wagonLog.message = playerName .. " builds town hall"
+            logging.Write(wagonLog)
+          end
+        end
+      end
+    end
+    xpcall(WagonBuildingAction2, print)
+  end
+
+  local finishBuildingTrigger = wc3api.CreateTrigger()
+  wc3api.TriggerAddAction(finishBuildingTrigger, wagons.WagonBuildingAction)
+
+  local function MakeWagon(player)
+    local wagonData = {}
+    wagonData.built = false
+    wagonData.playerref = player.ref
+
+    wc3api.TriggerRegisterPlayerUnitEvent(finishBuildingTrigger,
+                                          player.ref,
+                                          wc3api.constants.EVENT_PLAYER_UNIT_CONSTRUCT_START,
+                                          wc3api.constants.NO_FILTER)
+
+    wagonData.unit = wc3api.CreateUnit(player.ref,
+                                       wc3api.FourCC("h000"),
+                                       startRectInfo.centerx,
+                                       startRectInfo.centery,
+                                       0.00)
+
+    wc3api.SetUnitMoveSpeed(wagonData.unit, 3000)
+    wc3api.UnitAddAbility(wagonData.unit, wc3api.FourCC("AEbl")) -- blink
+    wc3api.SetUnitAbilityLevel(wagonData.unit, wc3api.FourCC("AEbl"), 3)
+    wc3api.BlzSetUnitMaxMana(wagonData.unit, 500)
+    wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA, 300)
+    wc3api.BlzSetUnitRealField(wagonData.unit, wc3api.constants.UNIT_RF_MANA_REGENERATION, 5)
+    wc3api.BlzSetUnitName(wagonData.unit, player.name)
+    table.insert(wagons.list, wagonData)
+  end
+
+  for _, player in pairs(players.list) do
+    -- if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and
+       -- player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
+
+    if (player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
+      if(player.id < 12) then
+        MakeWagon(player)
+      end
+    end
+  end
+
+
+
+
+  return wagons
 end
 
 
 
+function map.Wagons_Tests(testFramework)
+  testFramework.Suites.WagonsSuite = {}
+  testFramework.Suites.WagonsSuite.Tests = {}
+  local tsc = testFramework.Suites.WagonsSuite
 
---[[
-function map.Contestable_Create(rect, wc3api, unitManager)
-  local contestable = {}
-  contestable.contested = false
-  contestable.unitCount = 0 -- This is used to see if the rect starts with one unit
-  contestable.error = false
-  contestable.owningPlayer = nil
-
-  -- Check for contested status
-  function contestable.Update()
-    return unitManager.GetPlayerWithMostUnitsInRegion(rect)
-  end
-
-  local function GetContestableUnit()
-    contestable.unitCount = contestable.unitCount + 1
-    contestable.theUnit = wc3api.GetTriggerUnit()
-    contestable.owningPlayer = wc3api.Player(wc3api.GetPlayerNeutralPassive())
-    contestable.contested = false
-  end
-  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, wc3api.GetPlayerName(wc3api.Player(wc3api.GetPlayerNeutralPassive())))
-
-  -- Begin the init part:
-
-  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here1")
-
-  -- Create a group to count the contestable units
-  contestable.g = wc3api.CreateGroup()
-
-  -- Collect each unit of the rect into the new group
-  wc3api.GroupEnumUnitsInRect(contestable.g, rect, wc3api.constants.NO_FILTER)
-
-  -- For each unit in the group, call GetContestableUnit
-  wc3api.ForGroup(contestable.g, GetContestableUnit)
-
-  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here2")
-
-  if(contestable.unitCount ~= 1) then
-    contestable.error = true
-  end
-
-  -- wc3api.DisplayTextToPlayer(wc3api.Player(0), 0, 0, "here3")
-  return contestable
-end
-
-
-function map.ContestableManager_Create(wc3api, editor, commands, players, utility)
-  local contestableManager = {}
-  local currentIndex = 1
-  contestableManager.list = {}
-  contestableManager.checkTime = 1.0
-
-  local cts = map.Contestable_Create(editor.contestedShipyardRect1, wc3api)
-
-  contestableManager.list[1] = cts
-
-
-
-  -- The main routine for updating contestable states
-  local function periodicContestable()
-    local function periodicContestable2()
-      xpcall(contestableManager.list[1].Update, print)
-    end
-    xpcall(periodicContestable2, print)
-  end
-
-  -- Initialize the periodic trigger to update contestables
-  contestableManager.periodicTrigger = wc3api.CreateTrigger()
-  wc3api.TriggerAddAction(contestableManager.periodicTrigger, periodicContestable)
-  wc3api.TriggerRegisterTimerEvent(contestableManager.periodicTrigger, contestableManager.checkTime, wc3api.constants.IS_PERIODIC)
-
-
-  -- Commands:
-  -- contestable: displays number of contestables
-  -- contestable 1: shows information regarding the first contestable (current state, owned by whom)
-  local contestableDetailsCommand = {}
-  contestableDetailsCommand.activator = "-contestable"
-  contestableDetailsCommand.users = players.AUTHENTICATED_PLAYERS
-  function contestableDetailsCommand:Handler()
-    local commandingPlayer = wc3api.GetTriggerPlayer()
-    -- "-contestable 1"
-    local cmdString = wc3api.GetEventPlayerChatString()
-    --
-    local splitString = utility.Split(cmdString)
-    -- Get the actual parameter. if tonumber returns nil,
-    -- then the user only typed "-contestable"
-    local param = tonumber(table.remove(splitString))
-
-    if(type(param) == type(nil)) then
-      wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, #contestableManager.list)
-      return
-    end
-
-    -- Do nothing if the parameter makes no sense
-    if(param > #contestable.list) then
-      return
-    end
-
-    local displayInfo = ""
-
-    local cinfo = contestableManager.list[param]
-
-    -- displayInfo = displayInfo .. "[name: " .. cinfo.name .. "] - "
-    displayInfo = displayInfo .. "[owner: " .. cinfo.owningPlayer .. "] - "
-    wc3api.DisplayTextToPlayer(commandingPlayer, 0, 0, displayInfo)
-  end
-  commands.Add(contestableDetailsCommand)
-
-  return contestableManager
-end
-
-function map.Contestable_Tests(testFramework)
-  testFramework.Suites.ContestableSuite = {}
-  testFramework.Suites.ContestableSuite.Tests = {}
-  local tsc = testFramework.Suites.ContestableSuite
   local wc3api = {}
-  local editor = {}
-  local commands = {}
+  wc3api.constants = {}
+  -- wc3api.constants = map.RealWc3Api_Create().constants
+  function wc3api.GetRectCenterX() end
+  function wc3api.GetRectCenterY() end
+  function wc3api.CreateTrigger() end
+  function wc3api.TriggerAddAction() end
+  function wc3api.TriggerRegisterPlayerUnitEvent() end
+  function wc3api.FourCC() end
+  function wc3api.CreateUnit() end
+  function wc3api.UnitAddAbility() end
+  function wc3api.SetUnitAbilityLevel() end
+  function wc3api.BlzSetUnitMaxMana() end
+  function wc3api.BlzSetUnitRealField() end
+  function wc3api.BlzSetUnitName() end
+  function wc3api.GetConstructingStructure() end
+  function wc3api.GetTriggerPlayer() return "p1ref" end
+  function wc3api.IsUnitInRange() return true end
+  function wc3api.GetUnitTypeId() end
+  function wc3api.GetUnitX() end
+  function wc3api.GetUnitY() end
+  function wc3api.GetUnitFacing() end
+  function wc3api.RemoveUnit() end
+  function wc3api.SetUnitMoveSpeed() end
+  function wc3api.SetPlayerState() end
+  function wc3api.GetPlayerName() return "name" end
+
   local players = {}
-  local utility = {}
+  players.list = {}
+  local p1 = {}
+  p1.ref = "p1ref"
+  p1.id = 0
+  local p2 = {}
+  p2.ref = "p2ref"
+  p2.id = 1
+  table.insert(players.list, p1)
+  table.insert(players.list, p2)
 
-  local theCommand = {}
-  local infoToDisplay = ""
+  local commands = {}
 
-  -- Capture the contestable's periodicContestable
-  local periodicContestable = {}
+  local logging = {}
+  logging.types = {}
+  function logging.Write() end
 
-  function tsc.Setup()
-    theCommand = {}
-    infoToDisplay = ""
-    wc3api.constants = {}
-    wc3api.constants.NO_FILTER = nil
-    editor.contestableRects = {}
-    wc3api.GroupEnumUnitsInRect = function(p1, p2, p3) end
-    wc3api.ForGroup = function(p1, p2) end
-    wc3api.CreateGroup = function() end
-    wc3api.DestroyGroup = function() end
-    wc3api.GetTriggerUnit = function() end
-    wc3api.CreateTrigger = function() end
-    wc3api.TriggerAddAction = function(p1, p2) end
-    wc3api.TriggerRegisterTimerEvent = function(p1, p2, p3) end
-    wc3api.GetEventPlayerChatString = function() end
-    wc3api.GetTriggerPlayer = function() end
-    wc3api.DisplayTextToPlayer = function(p1, p2, p3, p4) end
-    utility.Split = function(p1) end
-    commands.Add = function(p1) end
-    wc3api.GetUnitName = function(p1) end
-    wc3api.GetPlayerNeutralPassive = function() return "neutral" end
-  end
+  local editor = {}
 
+
+  function tsc.Setup() end
   function tsc.Teardown() end
 
-  local function CreateNormalContestable()
-    local rect = {}
+  function tsc.Tests.WagonsCreated()
+    -- p1.playerslotstate = wc3api.constants.PLAYER_SLOT_STATE_PLAYING
+    -- p2.playerslotstate = wc3api.constants.PLAYER_SLOT_STATE_PLAYING
+    assert(p1.ref == "p1ref")
+    wc3api.constants.MAP_CONTROL_USER = "user"
+    wc3api.constants.PLAYER_SLOT_STATE_PLAYING = "playing"
 
-    wc3api.ForGroup = function(p1, p2)
-      p2()
-    end
-    local contestable = map.Contestable_Create(rect, wc3api)
+    p1.playerslotstate = "playing"
+    p2.playerslotstate = "playing"
+    p1.mapcontrol = "user"
+    p2.mapcontrol = "user"
+    local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
 
-    return contestable
-  end
-
-  function tsc.Tests.CreateSingleContestableWithoutError()
-    local rect = {}
-
-    wc3api.ForGroup = function(p1, p2)
-      p2()
-    end
-
-    local contestable = map.Contestable_Create(rect, wc3api)
-
-    assert(contestable.error == false)
-  end
-
-  function tsc.Tests.CreateSingleContestableWithError()
-    local rect = {}
-
-    wc3api.ForGroup = function(p1, p2)
-      p2()
-      p2()
-    end
-
-    local contestable = map.Contestable_Create(rect, wc3api)
-
-    assert(contestable.error == true)
-  end
-
-  function tsc.Tests.ContestableUpdateReturnsPlayer1()
-    local contestable = CreateNormalContestable()
-
-    local units = {}
-    units[1] = {}
-    units[1].owningPlayer = "player1"
-
-    local index = 1
-    wc3api.GetTriggerUnit = function()
-      local returnUnit = units[index]
-      index = index + 1
-      return returnUnit
-    end
-
-    wc3api.GetOwningPlayer = function(unit)
-      return unit.owningPlayer
-    end
-
-    wc3api.ForGroup = function(p1, p2)
-      for k,v in pairs(units) do
-        p2()
+    local testWagon
+    local otherWagon
+    for _,wagonData in pairs(wagons.list) do
+      if(wagonData.playerref == "p1ref") then
+        testWagon = wagonData
+      end
+      if(wagonData.playerref == "p2ref") then
+        otherWagon = wagonData
       end
     end
 
-    local player = contestable.Update()
+    wagons.WagonBuildingAction()
 
-    assert(player == "player1")
+    assert(testWagon.built == true)
+    assert(otherWagon.built == false)
   end
-
-  function tsc.Tests.ContestableUpdateReturnsPlayer3()
-    local contestable = CreateNormalContestable()
-
-    local units = {}
-    units[1] = {}
-    units[1].owningPlayer = "player1"
-    units[2] = {}
-    units[2].owningPlayer = "player2"
-    units[3] = {}
-    units[3].owningPlayer = "player3"
-    units[4] = {}
-    units[4].owningPlayer = "player3"
-
-    local index = 1
-    wc3api.GetTriggerUnit = function()
-      local returnUnit = units[index]
-      index = index + 1
-      return returnUnit
-    end
-
-    wc3api.GetOwningPlayer = function(unit)
-      return unit.owningPlayer
-    end
-
-    wc3api.ForGroup = function(p1, p2)
-      for k,v in pairs(units) do
-        p2()
-      end
-    end
-
-    local player = contestable.Update()
-
-    assert(player == "player3")
-    
-  end
-
-  function tsc.Tests.ContestableUpdateReturnsNeutral()
-    local contestable = CreateNormalContestable()
-
-    local units = {}
-    units[1] = {}
-    units[1].owningPlayer = "player1"
-    units[2] = {}
-    units[2].owningPlayer = "player2"
-
-    local index = 1
-    wc3api.GetTriggerUnit = function()
-      local returnUnit = units[index]
-      index = index + 1
-      return returnUnit
-    end
-
-    wc3api.GetOwningPlayer = function(unit)
-      return unit.owningPlayer
-    end
-
-    wc3api.ForGroup = function(p1, p2)
-      for k,v in pairs(units) do
-        p2()
-      end
-    end
-
-    local player = contestable.Update()
-
-    assert(player == "neutral")
-  end
-
-  function tsc.Tests.ContestableManagerCommand()
-    function map.Contestable_Create(p1, p2)
-      local cts = {}
-      cts.Update = function()
-      end
-      cts.name = "dummy"
-      cts.state = "nothing"
-      return cts
-    end
-    local cm = map.ContestableManager_Create(wc3api, editor, commands, players, utility)
-
-    assert(cm.list[1].name == "dummy")
-  end
-
-  -- function tsc.Tests.MoreThanOneUnitInRegionChecked()
-  if(false) then
-    editor.contestableRects.crect1 = "crect1"
-    editor.contestableRects.crect2 = "crect2"
-    wc3api.ForGroup = function(p1, p2)
-      -- If ForGroup calls the function p2 more than once,
-      -- that means there's more than one unit in the group.
-      -- Treat that as an error.
-      p2()
-      p2()
-    end
-
-    local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
-
-    for _, cinfo in pairs(contestable.list) do
-      assert(cinfo.error == true)
-    end
-  end
-
-  function normalSetup()
-    wc3api.GetPlayerNeutralPassive = function()
-      return "passive"
-    end
-    wc3api.DisplayTextToPlayer = function(p1, p2, p3, p4)
-      infoToDisplay = p4
-    end
-    utility.Split = function(p1)
-      local commandWords = {}
-      table.insert(commandWords, "1")
-      return commandWords
-    end
-    commands.Add = function(p1)
-      theCommand = p1
-    end
-    wc3api.GetUnitName = function(p1)
-      return "dummy"
-    end
-
-    editor.contestableRects.crect1 = "crect1"
-    editor.contestableRects.crect2 = "crect2"
-    wc3api.ForGroup = function(p1, p2)
-      -- ForGroup calls setupCrect
-      p2()
-    end
-
-    wc3api.GetTriggerUnit = function()
-      local dummyUnit = {}
-      return dummyUnit
-    end
-
-    wc3api.TriggerAddAction = function(p1, p2)
-      periodicContestable = p2
-    end
-  end
-
-  -- This test was used to build Contestable_Create, but there is no assert
-  -- function tsc.Tests.TestContestableCommand()
-  if(false) then
-    normalSetup()
-
-    local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
-
-    theCommand:Handler()
-  end
-
-  -- function tsc.Tests.ContestableStartsOwned()
-  if(false) then
-    normalSetup()
-
-    local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
-
-    assert(contestable.list[1].state == contestable.states.OWNED)
-  end
-
-  --function tsc.Tests.ContestableBecomesContested()
-  if(false) then
-    normalSetup()
-
-    local contestable = map.Contestable_Create(wc3api, editor, commands, players, utility)
-
-    local units = {}
-    units[1] = {}
-    units[1].owningPlayer = "player1"
-    units[2] = {}
-    units[2].owningPlayer = "player1"
-    units[3] = {}
-    units[3].owningPlayer = "player2"
-
-    local unitIndex = 1
-    wc3api.GetTriggerUnit = function()
-      local returnUnit = units[unitIndex]
-      unitIndex = unitIndex + 1
-      return returnUnit
-    end
-
-    wc3api.GetOwningPlayer = function(unit)
-      return unit.owningPlayer
-    end
-
-    wc3api.ForGroup = function(p1, p2)
-      for k,v in pairs(units) do
-        p2()
-      end
-    end
-
-    -- Remove crect2 to test a single crect
-    local crect2 = table.remove(contestable.list)
-
-    assert(contestable.list[1].state == contestable.states.OWNED)
-
-    periodicContestable()
-
-    assert(contestable.list[1].state == contestable.states.CONTESTED)
-  end
-
 end
---]]
-
-
 function map.Commands_Create(wc3api)
   local commands = {}
   commands.list = {}
@@ -932,7 +844,7 @@ function map.Clock_Create()
     local timeElapsed = clock.TimeElapsed()
 
     timeString = tostring(timeElapsed.hours) .. ":" .. tostring(timeElapsed.minutes) .. ":" .. tostring(timeElapsed.seconds)
-    -- timeString = string.format("10:07:04", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
+    -- timeString = string.format("-243315840:10:06", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
 
     return timeString
   end
@@ -1394,6 +1306,24 @@ function map.Logging_Tests(testFramework)
   --luacheck: pop
 
 end
+function map.Triggers_Create(wc3api)
+  local triggers = {}
+
+
+  function triggers.CreatePeriodicTrigger(period, action)
+    local periodicTrigger = {}
+
+    periodicTrigger.trigger = wc3api.CreateTrigger()
+    wc3api.TriggerAddAction(periodicTrigger.trigger, action)
+    wc3api.TriggerRegisterTimerEvent(periodicTrigger.trigger, period, wc3api.constants.IS_PERIODIC)
+
+    -- TODO: Add a way to destroy/disable this trigger
+
+    return periodicTrigger
+  end
+
+  return triggers
+end
 function map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
   local debugTools = {}
 
@@ -1634,6 +1564,17 @@ function map.UnitManager_Create(wc3api, logging, commands)
     wc3api.SetUnitOwner(unit, otherPlayer, wc3api.constants.CHANGE_COLOR)
   end
 
+  function unitManager.ConvertUnitToOtherUnit(unit, otherUnitID)
+    local unitID = wc3api.GetUnitTypeId(unit)
+    local unitx = wc3api.GetUnitX(unit)
+    local unity = wc3api.GetUnitY(unit)
+    local unitface = wc3api.GetUnitFacing(unit)
+    local unitowner = wc3api.GetOwningPlayer(unit)
+    wc3api.RemoveUnit(unit)
+    local newUnit = wc3api.CreateUnit(unitowner, otherUnitID, unitx, unity, unitface)
+    return newUnit
+  end
+
 
   --[[ TODO: Implement a command to get useful info
   -- Commands
@@ -1843,9 +1784,9 @@ function map.RealWc3Api_Create()
   realWc3Api.constants.PLAYER_SLOT_STATE_LEFT = PLAYER_SLOT_STATE_LEFT
 
   realWc3Api.constants.MAP_CONTROL_USER = MAP_CONTROL_USER
-  realWc3Api.constants.MAP_CONTROL_COMPUTER = MAP_CONTROL_COMPU
-  realWc3Api.constants.MAP_CONTROL_RESCUABLE = MAP_CONTROL_RESCU
-  realWc3Api.constants.MAP_CONTROL_NEUTRAL = MAP_CONTROL_NEUTR
+  realWc3Api.constants.MAP_CONTROL_COMPUTER = MAP_CONTROL_COMPUTER
+  realWc3Api.constants.MAP_CONTROL_RESCUABLE = MAP_CONTROL_RESCUABLE
+  realWc3Api.constants.MAP_CONTROL_NEUTRAL = MAP_CONTROL_NEUTRAL
   realWc3Api.constants.MAP_CONTROL_CREEP = MAP_CONTROL_CREEP
   realWc3Api.constants.MAP_CONTROL_NONE = MAP_CONTROL_NONE
 
@@ -2205,6 +2146,10 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.GetIssuedOrderId()
     return GetIssuedOrderId()
+  end
+
+  function realWc3Api.IssueBuildOrderById(whichPeon, unitId, x, y)
+    return IssueBuildOrderById(whichPeon, unitId, x, y)
   end
 
   function realWc3Api.GetOrderPointX()
@@ -2906,36 +2851,39 @@ function TestInit()
   local logging = map.Logging_Create(wc3api, gameClock, commands, players)
   local unitManager = map.UnitManager_Create(wc3api, logging, commands)
   local editor = map.Editor_Create()
+  local triggers = map.Triggers_Create(wc3api)
   local debugTools = map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
+  
   initFinished = true
   assert(initFinished, "Init did not finish.")
+
+  for _,player in pairs(players.list) do
+    if(player.name == "WorldEdit" or player.name == "MasterLich#11192") then
+      logging.SetPlayerOptionByID(player.id, logging.types.ALL)
+    end
+  end
+
+  for _,player in pairs(players.list) do
+    wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_GOLD, 2000)
+    wc3api.SetPlayerState(player.ref, wc3api.constants.PLAYER_STATE_RESOURCE_LUMBER, 2000)
+  end
 
 
   function TestRegions()
     local function TestRegions1()
       -- Editor prepares region to have 3 red knights and 3 blue knights
-      
+
     end
     TestRegions1()
 
     local function TestRegions2()
       -- Editor prepares region to have 1 Neutral town hall
-      print("Player 0: " .. tostring(wc3api.Player(0)))
-      print("Player Neutral: " .. tostring(wc3api.Player(wc3api.GetPlayerNeutralPassive())))
-      local dummy = unitManager.CountUnitsPerPlayerInRegion(editor.TestRegion2)
-      assert(dummy[wc3api.Player(wc3api.GetPlayerNeutralPassive())] == 1, "neutral does not have one unit")
-      local contestable = map.Contestable_Create(editor.TestRegion2, unitManager, wc3api)
+      -- local contestable = map.Contestable_Create(editor.TestRegion2, unitManager, wc3api)
+      local contestable = map.Contestable_Create(editor.TestRegion2, unitManager, wc3api, triggers, logging, wagons)
       local function periodicContestable()
         local function periodicContestable2()
           -- debugTools.Display(tostring(contestable.consecutiveCounter))
           xpcall(contestable.Update, print)
-          local playerUnits = unitManager.CountUnitsPerPlayerInRegion(editor.TestRegion2)
-          local p0uc = playerUnits[wc3api.Player(0)]
-          local pnuc = playerUnits[wc3api.Player(wc3api.GetPlayerNeutralPassive())]
-          local msg1 = "P0 unit count: " .. tostring(p0uc)
-          local msg2 = "PN unit count: " .. tostring(pnuc)
-          wc3api.BJDebugMsg(msg1)
-          wc3api.BJDebugMsg(msg2)
         end
         xpcall(periodicContestable2, print)
       end
@@ -2946,12 +2894,35 @@ function TestInit()
       local periodicTrigger = wc3api.CreateTrigger()
       wc3api.TriggerAddAction(periodicTrigger, periodicContestable)
       wc3api.TriggerRegisterTimerEvent(periodicTrigger, 1.0, wc3api.constants.IS_PERIODIC)
-
-
-      
     end
     xpcall(TestRegions2, print)
-    
+
+    function map.TestContestedShipyard1()
+      local startRectInfo = {}
+      startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
+      startRectInfo.centery = wc3api.GetRectCenterY(editor.startRect)
+
+      local shipyardrect = {}
+      shipyardrect.centerx = wc3api.GetRectCenterX(editor.contestedShipyard1)
+      shipyardrect.centery = wc3api.GetRectCenterY(editor.contestedShipyard1)
+
+      local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
+      local contestableManager = map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
+      local dummyWagon = nil
+      for k,wagon in pairs(wagons.list) do
+        if(wagon.playerref == wc3api.Player(1)) then
+          dummyWagon = wagon
+        end
+      end
+      wc3api.IssueBuildOrderById(dummyWagon.unit, wc3api.FourCC("unpl"), startRectInfo.centerx, startRectInfo.centery)
+
+      for i=0, 3 do
+        wc3api.CreateUnit(wc3api.Player(1), wc3api.FourCC("hkni"), shipyardrect.centerx, shipyardrect.centery, 0)
+      end
+
+    end
+    xpcall(map.TestContestedShipyard1, print)
+
     return true
   end
   assert(TestRegions(), "Region tests did not finish.")
@@ -2986,10 +2957,16 @@ SetPlayerColor(Player(0), ConvertPlayerColor(0))
 SetPlayerRacePreference(Player(0), RACE_PREF_HUMAN)
 SetPlayerRaceSelectable(Player(0), true)
 SetPlayerController(Player(0), MAP_CONTROL_USER)
+SetPlayerStartLocation(Player(1), 1)
+SetPlayerColor(Player(1), ConvertPlayerColor(1))
+SetPlayerRacePreference(Player(1), RACE_PREF_ORC)
+SetPlayerRaceSelectable(Player(1), true)
+SetPlayerController(Player(1), MAP_CONTROL_COMPUTER)
 end
 
 function InitCustomTeams()
 SetPlayerTeam(Player(0), 0)
+SetPlayerTeam(Player(1), 0)
 end
 
 function main()
@@ -3010,12 +2987,14 @@ end
 function config()
 SetMapName("TRIGSTR_001")
 SetMapDescription("TRIGSTR_003")
-SetPlayers(1)
-SetTeams(1)
+SetPlayers(2)
+SetTeams(2)
 SetGamePlacement(MAP_PLACEMENT_USE_MAP_SETTINGS)
 DefineStartLocation(0, -2176.0, -2560.0)
+DefineStartLocation(1, -1792.0, -2560.0)
 InitCustomPlayerSlots()
 SetPlayerSlotAvailable(Player(0), MAP_CONTROL_USER)
+SetPlayerSlotAvailable(Player(1), MAP_CONTROL_COMPUTER)
 InitGenericPlayerSlots()
 end
 
