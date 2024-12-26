@@ -6,6 +6,9 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
   startRectInfo.centery = wc3api.GetRectCenterY(editor.startRect)
 
+  local wagonLog = {}
+  wagonLog.type = logging.types.INFO
+
   function wagons.WagonBuildingAction()
     local function WagonBuildingAction2()
       -- GetTriggerUnit() returns the building instead of the builder BUG
@@ -38,9 +41,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
               wagonData.race = "elf"
             end
 
-            local wagonLog = {}
-            wagonLog.type = logging.types.INFO
-            wagonLog.message = playerName .. " builds town hall"
+
+            wagonLog.message = playerName .. " builds town hall" .. " and is race " .. wagonData.race
             logging.Write(wagonLog)
           end
         end
@@ -79,10 +81,13 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   end
 
   for _, player in pairs(players.list) do
-    if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and
-       player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
+    -- if(player.mapcontrol == wc3api.constants.MAP_CONTROL_USER and
+       -- player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
 
-      MakeWagon(player)
+    if (player.playerslotstate == wc3api.constants.PLAYER_SLOT_STATE_PLAYING) then
+      if(player.id < 12) then
+        MakeWagon(player)
+      end
     end
   end
 
@@ -91,8 +96,6 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
 
   return wagons
 end
-
-
 
 
 
@@ -132,8 +135,10 @@ function map.Wagons_Tests(testFramework)
   players.list = {}
   local p1 = {}
   p1.ref = "p1ref"
+  p1.id = 0
   local p2 = {}
   p2.ref = "p2ref"
+  p2.id = 1
   table.insert(players.list, p1)
   table.insert(players.list, p2)
 
