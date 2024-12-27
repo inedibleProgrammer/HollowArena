@@ -14,6 +14,12 @@ gg_rct_contestedShipyardRect7 = nil
 gg_rct_contestedShipyardRect8 = nil
 gg_rct_contestedShipyardRect9 = nil
 gg_rct_contestedShipyardRect10 = nil
+gg_rct_northSeaRect = nil
+gg_rct_westSeaRect = nil
+gg_rct_southSeaRect = nil
+gg_rct_eastSeaRect = nil
+gg_rct_waterBossRect = nil
+gg_rct_wormwoodBaseRect = nil
 function InitGlobals()
 end
 
@@ -34,9 +40,9 @@ end
 function CreateAllItems()
 local itemID
 
+BlzCreateItemWithSkin(FourCC("gold"), 7842.3, 8330.0, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("gold"), 8008.3, 8227.2, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("gold"), 7854.8, 8193.7, FourCC("gold"))
-BlzCreateItemWithSkin(FourCC("gold"), 7842.3, 8330.0, FourCC("gold"))
 BlzCreateItemWithSkin(FourCC("tpow"), 6875.6, 5718.4, FourCC("tpow"))
 end
 
@@ -48,30 +54,30 @@ local t
 local life
 
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -6080.0, 5120.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -6080.0, -5696.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -11648.0, -12608.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
-u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -6848.0, -14976.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
+u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -6528.0, -12544.0, 270.000, FourCC("ngol"))
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -3584.0, -10752.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -128.0, -11392.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 6848.0, -10048.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 9152.0, -12416.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 12416.0, -7104.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 8384.0, -6592.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -896.0, -5632.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
+SetResourceAmount(u, 99999)
 u = BlzCreateUnitWithSkin(p, FourCC("ngol"), -3520.0, -1024.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
-u = BlzCreateUnitWithSkin(p, FourCC("h001"), -5792.0, 2720.0, 270.000, FourCC("h001"))
+SetResourceAmount(u, 99999)
+u = BlzCreateUnitWithSkin(p, FourCC("h001"), -5792.0, 2592.0, 270.000, FourCC("h001"))
 u = BlzCreateUnitWithSkin(p, FourCC("h001"), -8800.0, -5344.0, 270.000, FourCC("h001"))
 u = BlzCreateUnitWithSkin(p, FourCC("h001"), -9824.0, -13152.0, 270.000, FourCC("h001"))
 u = BlzCreateUnitWithSkin(p, FourCC("h001"), -5024.0, -12960.0, 270.000, FourCC("h001"))
@@ -88,16 +94,10 @@ u = BlzCreateUnitWithSkin(p, FourCC("nmr8"), -1856.0, -7936.0, 270.000, FourCC("
 SetUnitColor(u, ConvertPlayerColor(9))
 u = BlzCreateUnitWithSkin(p, FourCC("ntav"), -2752.0, -7808.0, 270.000, FourCC("ntav"))
 SetUnitColor(u, ConvertPlayerColor(0))
-u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 3520.0, 8128.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
-u = BlzCreateUnitWithSkin(p, FourCC("ovln"), 12096.0, -2560.0, 270.000, FourCC("ovln"))
-u = BlzCreateUnitWithSkin(p, FourCC("nfoh"), 1664.0, -1792.0, 270.000, FourCC("nfoh"))
+u = BlzCreateUnitWithSkin(p, FourCC("nfoh"), -6784.0, 7808.0, 270.000, FourCC("nfoh"))
 u = BlzCreateUnitWithSkin(p, FourCC("nmoo"), -4864.0, 6720.0, 270.000, FourCC("nmoo"))
 u = BlzCreateUnitWithSkin(p, FourCC("h001"), -288.0, -6560.0, 270.000, FourCC("h001"))
 u = BlzCreateUnitWithSkin(p, FourCC("h001"), 8160.0, -8096.0, 270.000, FourCC("h001"))
-u = BlzCreateUnitWithSkin(p, FourCC("ngol"), 5824.0, 7232.0, 270.000, FourCC("ngol"))
-SetResourceAmount(u, 12500)
-u = BlzCreateUnitWithSkin(p, FourCC("hvlt"), -6720.0, 7872.0, 270.000, FourCC("hvlt"))
 end
 
 function CreatePlayerBuildings()
@@ -127,11 +127,17 @@ gg_rct_contestedShipyardRect7 = Rect(-9728.0, -5920.0, -8640.0, -4864.0)
 gg_rct_contestedShipyardRect8 = Rect(10048.0, -12832.0, 11136.0, -11808.0)
 gg_rct_contestedShipyardRect9 = Rect(-2400.0, -9920.0, -1184.0, -8992.0)
 gg_rct_contestedShipyardRect10 = Rect(-544.0, -6976.0, 32.0, -6400.0)
+gg_rct_northSeaRect = Rect(-15776.0, 11008.0, 15584.0, 15392.0)
+gg_rct_westSeaRect = Rect(-15776.0, -15872.0, -12352.0, 15488.0)
+gg_rct_southSeaRect = Rect(-4288.0, -15776.0, 15296.0, -13664.0)
+gg_rct_eastSeaRect = Rect(13056.0, -15808.0, 15520.0, 15520.0)
+gg_rct_waterBossRect = Rect(12800.0, 1088.0, 14816.0, 3424.0)
+gg_rct_wormwoodBaseRect = Rect(64.0, 2112.0, 7872.0, 9984.0)
 end
 
 map = {}
 map.version = "0.0.0"
-map.commit = "848cb0dfdb9a5c16ed8cecbe21da40b6491a0ea7"
+map.commit = "64f66bcd6e44c410192c52e72f88435e95ab12ba"
 --luacheck: push ignore
 
 -- Interface between the scripting code and the wc3 editor
@@ -189,6 +195,12 @@ function map.HollowArena_Initialize()
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
 
+  local function MeleeSetup()
+    wc3api.MeleeStartingVisibility()
+    wc3api.MeleeStartingHeroLimit()
+    wc3api.MeleeGrantHeroItems()
+  end
+
   -- TODO: Make this some kind of build option
   for _,player in pairs(players.list) do
     if(player.name == "WorldEdit" or player.name == "MasterLich#11192") then
@@ -201,9 +213,9 @@ function map.HollowArena_Initialize()
   gameStatusLog.message = "Game Start"
   logging.Write(gameStatusLog)
 
-  wc3api.MeleeStartingVisibility()
-  wc3api.MeleeStartingHeroLimit()
-  wc3api.MeleeGrantHeroItems()
+  xpcall(MeleeSetup, print)
+
+
 
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
@@ -796,6 +808,27 @@ function map.Contestable_Tests(testFramework)
 end
 
 
+function map.Obelisk_Create()
+end
+
+
+function map.ObeliskManager_Create()
+end
+
+
+
+
+function map.Obelisk_Tests(testFramework)
+  testFramework.Suites.ObeliskSuite = {}
+  testFramework.Suites.ObeliskSuite.Tests = {}
+  local tsc = testFramework.Suites.ObeliskSuite
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.ObeliskDummy()
+  end
+end
 function map.Commands_Create(wc3api)
   local commands = {}
   commands.list = {}
@@ -1998,6 +2031,18 @@ function map.RealWc3Api_Create()
     return BJDebugMsg(msg)
   end
 
+  function realWc3Api.GetWorldBounds()
+    return GetWorldBounds()
+  end
+
+  function realWc3Api.PingMinimap(x, y, duration)
+    return PingMinimap(x, y, duration)
+  end
+
+  function realWc3Api.PingMinimapEx(x, y, duration, red, green, blue, extraEffects)
+    return PingMinimapEx(x, y, duration, red, green, blue, extraEffects)
+  end
+
   function realWc3Api.CreateTrigger()
     return CreateTrigger()
   end
@@ -3048,6 +3093,21 @@ function map.Triggers_Create(wc3api)
     return periodicTrigger
   end
 
+  function triggers.CreateTimedTrigger(time, action)
+    local timedTrigger = {}
+
+    local function ActionWithCleanup()
+      action()
+      wc3api.DestroyTrigger(timedTrigger.trigger)
+    end
+
+    timedTrigger.trigger = wc3api.CreateTrigger()
+    wc3api.TriggerAddAction(timedTrigger.trigger, ActionWithCleanup)
+    wc3api.TriggerRegisterTimerEvent(timedTrigger.trigger, time, wc3api.constants.IS_NOT_PERIODIC)
+
+    return timedTrigger
+  end
+
   return triggers
 end
 -- Hollow Arena
@@ -3056,6 +3116,7 @@ function map.UnitTests()
   local testFramework = map.TestFramework_Create()
   map.Wagons_Tests(testFramework)
   map.Contestable_Tests(testFramework)
+  map.Obelisk_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 
@@ -3217,18 +3278,18 @@ end
 function InitAllyPriorities()
 SetStartLocPrioCount(0, 1)
 SetStartLocPrio(0, 0, 11, MAP_LOC_PRIO_HIGH)
-SetStartLocPrioCount(1, 5)
+SetStartLocPrioCount(1, 6)
 SetStartLocPrio(1, 0, 2, MAP_LOC_PRIO_LOW)
-SetStartLocPrio(1, 1, 8, MAP_LOC_PRIO_LOW)
-SetStartLocPrio(1, 2, 9, MAP_LOC_PRIO_HIGH)
-SetStartLocPrio(1, 3, 10, MAP_LOC_PRIO_HIGH)
-SetStartLocPrio(1, 4, 11, MAP_LOC_PRIO_HIGH)
-SetStartLocPrioCount(2, 3)
-SetStartLocPrio(2, 0, 1, MAP_LOC_PRIO_LOW)
-SetStartLocPrio(2, 1, 3, MAP_LOC_PRIO_HIGH)
-SetStartLocPrio(2, 2, 9, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(1, 1, 3, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(1, 2, 8, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(1, 3, 9, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(1, 4, 10, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(1, 5, 11, MAP_LOC_PRIO_HIGH)
+SetStartLocPrioCount(2, 2)
+SetStartLocPrio(2, 0, 3, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(2, 1, 9, MAP_LOC_PRIO_LOW)
 SetStartLocPrioCount(3, 2)
-SetStartLocPrio(3, 0, 2, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(3, 0, 2, MAP_LOC_PRIO_LOW)
 SetStartLocPrio(3, 1, 9, MAP_LOC_PRIO_HIGH)
 SetStartLocPrioCount(4, 3)
 SetStartLocPrio(4, 0, 5, MAP_LOC_PRIO_HIGH)
@@ -3245,10 +3306,9 @@ SetStartLocPrio(7, 0, 6, MAP_LOC_PRIO_HIGH)
 SetStartLocPrioCount(8, 2)
 SetStartLocPrio(8, 0, 9, MAP_LOC_PRIO_HIGH)
 SetStartLocPrio(8, 1, 10, MAP_LOC_PRIO_LOW)
-SetStartLocPrioCount(9, 3)
-SetStartLocPrio(9, 0, 1, MAP_LOC_PRIO_LOW)
-SetStartLocPrio(9, 1, 3, MAP_LOC_PRIO_HIGH)
-SetStartLocPrio(9, 2, 8, MAP_LOC_PRIO_HIGH)
+SetStartLocPrioCount(9, 2)
+SetStartLocPrio(9, 0, 3, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(9, 1, 8, MAP_LOC_PRIO_HIGH)
 SetStartLocPrioCount(10, 4)
 SetStartLocPrio(10, 0, 1, MAP_LOC_PRIO_HIGH)
 SetStartLocPrio(10, 1, 8, MAP_LOC_PRIO_HIGH)
@@ -3278,8 +3338,12 @@ SetEnemyStartLocPrioCount(14, 1)
 end
 
 function main()
+local we
+
 SetCameraBounds(-15616.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), -15872.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM), 15616.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), 15360.0 - GetCameraMargin(CAMERA_MARGIN_TOP), -15616.0 + GetCameraMargin(CAMERA_MARGIN_LEFT), 15360.0 - GetCameraMargin(CAMERA_MARGIN_TOP), 15616.0 - GetCameraMargin(CAMERA_MARGIN_RIGHT), -15872.0 + GetCameraMargin(CAMERA_MARGIN_BOTTOM))
 SetDayNightModels("Environment\\DNC\\DNCLordaeron\\DNCLordaeronTerrain\\DNCLordaeronTerrain.mdl", "Environment\\DNC\\DNCLordaeron\\DNCLordaeronUnit\\DNCLordaeronUnit.mdl")
+we = AddWeatherEffect(Rect(-16384.0, -16384.0, 16384.0, 16384.0), FourCC("WOcw"))
+EnableWeatherEffect(we, true)
 NewSoundEnvironment("Default")
 SetAmbientDaySound("BlackCitadelDay")
 SetAmbientNightSound("BlackCitadelNight")
@@ -3303,7 +3367,7 @@ SetGamePlacement(MAP_PLACEMENT_TEAMS_TOGETHER)
 DefineStartLocation(0, -6464.0, 4608.0)
 DefineStartLocation(1, -6592.0, -5760.0)
 DefineStartLocation(2, -11264.0, -12096.0)
-DefineStartLocation(3, -6528.0, -14464.0)
+DefineStartLocation(3, -6528.0, -13312.0)
 DefineStartLocation(4, 7872.0, -6912.0)
 DefineStartLocation(5, 11904.0, -6656.0)
 DefineStartLocation(6, 6528.0, -10496.0)

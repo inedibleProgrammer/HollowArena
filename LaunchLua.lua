@@ -4,6 +4,7 @@ function map.UnitTests()
   local testFramework = map.TestFramework_Create()
   map.Wagons_Tests(testFramework)
   map.Contestable_Tests(testFramework)
+  map.Obelisk_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 

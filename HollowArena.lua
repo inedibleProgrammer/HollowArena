@@ -17,6 +17,12 @@ function map.HollowArena_Initialize()
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
 
+  local function MeleeSetup()
+    wc3api.MeleeStartingVisibility()
+    wc3api.MeleeStartingHeroLimit()
+    wc3api.MeleeGrantHeroItems()
+  end
+
   -- TODO: Make this some kind of build option
   for _,player in pairs(players.list) do
     if(player.name == "WorldEdit" or player.name == "MasterLich#11192") then
@@ -29,9 +35,9 @@ function map.HollowArena_Initialize()
   gameStatusLog.message = "Game Start"
   logging.Write(gameStatusLog)
 
-  wc3api.MeleeStartingVisibility()
-  wc3api.MeleeStartingHeroLimit()
-  wc3api.MeleeGrantHeroItems()
+  xpcall(MeleeSetup, print)
+
+
 
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
