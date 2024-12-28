@@ -11,6 +11,8 @@ Build.SourceFiles = {
   "Wormwood.lua",
   "Contestable.lua",
   "Obelisks.lua",
+  "Terror.lua",
+  "GameState.lua",
   "../Wc3Tools/Commands.lua",
   "../Wc3Tools/TestFramework.lua",
   "../Wc3Tools/Utility.lua",

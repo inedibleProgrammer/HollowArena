@@ -5,6 +5,7 @@ function map.UnitTests()
   map.Wagons_Tests(testFramework)
   map.Contestable_Tests(testFramework)
   map.Obelisk_Tests(testFramework)
+  map.Terror_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 

@@ -4,6 +4,10 @@
 function map.Editor_Create()
   local editor = {}
   editor.contestableRects = {}
+  editor.seaRects = {}
+  editor.landRects = {}
+  editor.obeliskRects = {}
+  editor.terrors = {}
 
   editor.startRect = gg_rct_startRect
   editor.wormwoodRect = gg_rct_wormwoodRect
@@ -29,6 +33,37 @@ function map.Editor_Create()
   table.insert(editor.contestableRects, editor.contestedShipyardRect8)
   table.insert(editor.contestableRects, editor.contestedShipyardRect9)
   table.insert(editor.contestableRects, editor.contestedShipyardRect10)
+
+  editor.eastSeaRect = gg_rct_eastSeaRect
+  editor.frontFieldRect = gg_rct_frontFieldRect
+
+  table.insert(editor.obeliskRects, gg_rct_frontFieldRect)
+  table.insert(editor.obeliskRects, gg_rct_heart1Rect)
+  table.insert(editor.obeliskRects, gg_rct_heart2Rect)
+  table.insert(editor.obeliskRects, gg_rct_west1Rect)
+  table.insert(editor.obeliskRects, gg_rct_west2Rect)
+  table.insert(editor.obeliskRects, gg_rct_west3Rect)
+  table.insert(editor.obeliskRects, gg_rct_west4Rect)
+  table.insert(editor.obeliskRects, gg_rct_west5Rect)
+  table.insert(editor.obeliskRects, gg_rct_westFieldRect)
+  table.insert(editor.obeliskRects, gg_rct_west1Rect)
+
+  local firstTerror = {}
+  firstTerror.playerID = 14
+
+  local secondTerror = {}
+  secondTerror.playerID = 18
+
+  local thirdTerror = {}
+  thirdTerror.playerID = 22
+
+  local fourthTerror = {}
+  fourthTerror.playerID = 23
+
+  table.insert(editor.terrors, firstTerror)
+  table.insert(editor.terrors, secondTerror)
+  table.insert(editor.terrors, thirdTerror)
+  table.insert(editor.terrors, fourthTerror)
 
 
 
