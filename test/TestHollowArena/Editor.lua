@@ -9,6 +9,7 @@ function map.Editor_Create()
 
   editor.TestRegion1 = gg_rct_TestRegion1
   editor.TestRegion2 = gg_rct_TestRegion2
+  editor.TestRegion3 = gg_rct_TestRegion3
 
   editor.contestedShipyard1 = gg_rct_contestedShipyard1
   table.insert(editor.contestableRects, editor.contestedShipyard1)

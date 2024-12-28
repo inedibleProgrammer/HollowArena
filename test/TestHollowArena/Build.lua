@@ -7,6 +7,7 @@ Build.SourceFiles = {
   "Editor.lua",
   "../../Contestable.lua",
   "../../Wagons.lua",
+  "../../Terror.lua",
   "../../../Wc3Tools/Commands.lua",
   "../../../Wc3Tools/Utility.lua",
   "../../../Wc3Tools/GameClock.lua",

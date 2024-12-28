@@ -85,6 +85,22 @@ function TestInit()
     end
     xpcall(map.TestContestedShipyard1, print)
 
+    local function TestRegions3()
+      local testregion3 = {}
+      testregion3.x = wc3api.GetRectCenterX(editor.TestRegion3)
+      testregion3.y = wc3api.GetRectCenterY(editor.TestRegion3)
+      local function TestTerror()
+        local function FindDummyUnit()
+          local u = wc3api.CreateUnit(wc3api.Player(0), wc3api.FourCC("hkni"), testregion3.x, testregion3.y, 0)
+          return u
+        end
+        local terror = map.Terror_Create(1, "hkni", 0, 0, wc3api, FindDummyUnit)
+        terror.Update()
+      end
+      TestTerror()
+    end
+    xpcall(TestRegions3, print)
+
     return true
   end
   assert(TestRegions(), "Region tests did not finish.")
