@@ -16,6 +16,7 @@ function map.HollowArena_Initialize()
 
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
+  local gamestate = map.GameState_Create
 
   local function MeleeSetup()
     wc3api.MeleeStartingVisibility()
@@ -43,5 +44,6 @@ function map.HollowArena_Initialize()
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wormwood = map.Wormwood_Create(wc3api, editor, players)
   local contestableManager = map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
+  local obeliskManager = map.ObeliskManager_Create(wc3api, gamestate, editor, triggers, terror)
 end
 
