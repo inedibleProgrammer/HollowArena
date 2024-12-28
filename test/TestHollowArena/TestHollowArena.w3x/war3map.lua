@@ -7,6 +7,7 @@ gg_rct_startRect = nil
 gg_trg_MakeUnitBuild = nil
 gg_unit_hkni_0016 = nil
 gg_unit_hpea_0020 = nil
+gg_rct_TestRegion3 = nil
 function InitGlobals()
 end
 
@@ -77,11 +78,12 @@ gg_rct_TestRegion1 = Rect(-2912.0, 2176.0, -2304.0, 2720.0)
 gg_rct_TestRegion2 = Rect(-2176.0, 2176.0, -1440.0, 3040.0)
 gg_rct_contestedShipyard1 = Rect(-2880.0, 1056.0, -2240.0, 1664.0)
 gg_rct_startRect = Rect(-2144.0, 1056.0, -1376.0, 1664.0)
+gg_rct_TestRegion3 = Rect(-256.0, 2144.0, 352.0, 2688.0)
 end
 
 map = {}
 map.version = "TEST"
-map.commit = "848cb0dfdb9a5c16ed8cecbe21da40b6491a0ea7"
+map.commit = "016370eb95964cb6248e0951cca0fa5f986f5d24"
 --luacheck: push ignore
 
 -- Interface between the scripting code and the wc3 editor
@@ -93,6 +95,7 @@ function map.Editor_Create()
 
   editor.TestRegion1 = gg_rct_TestRegion1
   editor.TestRegion2 = gg_rct_TestRegion2
+  editor.TestRegion3 = gg_rct_TestRegion3
 
   editor.contestedShipyard1 = gg_rct_contestedShipyard1
   table.insert(editor.contestableRects, editor.contestedShipyard1)
@@ -160,6 +163,10 @@ function map.Contestable_Create(region, unitManager, wc3api, triggers, logging, 
       contestable.consecutiveCounter = contestable.consecutiveCounter + 1
 
       if contestable.consecutiveCounter >= contestable.CHANGE_OWNER_COUNT then
+        if contestable.owner == biggestPlayer then
+          return
+        end
+
         contestable.owner = biggestPlayer
         contestable.consecutiveCounter = 0
         if(contestable.type == "shipyard") then
@@ -188,16 +195,16 @@ function map.ContestableManager_Create(editor, unitManager, wc3api, triggers, lo
   for _,rect in pairs(editor.contestableRects) do
     local contestable = map.Contestable_Create(rect, unitManager, wc3api, triggers, logging, wagons)
 
-    if rect == editor.contestedShipyard1 or
-      rect == editor.contestedShipyard2 or
-      rect == editor.contestedShipyard3 or
-      rect == editor.contestedShipyard4 or
-      rect == editor.contestedShipyard5 or
-      rect == editor.contestedShipyard6 or
-      rect == editor.contestedShipyard7 or
-      rect == editor.contestedShipyard8 or
-      rect == editor.contestedShipyard9 or
-      rect == editor.contestedShipyard10
+    if rect == editor.contestedShipyardRect1 or
+      rect == editor.contestedShipyardRect2 or
+      rect == editor.contestedShipyardRect3 or
+      rect == editor.contestedShipyardRect4 or
+      rect == editor.contestedShipyardRect5 or
+      rect == editor.contestedShipyardRect6 or
+      rect == editor.contestedShipyardRect7 or
+      rect == editor.contestedShipyardRect8 or
+      rect == editor.contestedShipyardRect9 or
+      rect == editor.contestedShipyardRect10
     then
       contestable.type = "shipyard"
     end
@@ -423,6 +430,9 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
   startRectInfo.centerx = wc3api.GetRectCenterX(editor.startRect)
   startRectInfo.centery = wc3api.GetRectCenterY(editor.startRect)
 
+  local wagonLog = {}
+  wagonLog.type = logging.types.INFO
+
   function wagons.WagonBuildingAction()
     local function WagonBuildingAction2()
       -- GetTriggerUnit() returns the building instead of the builder BUG
@@ -455,9 +465,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
               wagonData.race = "elf"
             end
 
-            local wagonLog = {}
-            wagonLog.type = logging.types.INFO
-            wagonLog.message = playerName .. " builds town hall"
+
+            wagonLog.message = playerName .. " builds town hall" .. " and is race " .. wagonData.race
             logging.Write(wagonLog)
           end
         end
@@ -599,6 +608,53 @@ function map.Wagons_Tests(testFramework)
     assert(otherWagon.built == false)
   end
 end
+function map.Terror_Create(playerID, unitID, x, y, wc3api, findTarget)
+  local terror = {}
+  terror.STATES = {
+    IDLE = 1,
+    ATTACKING_PLAYER = 2,
+  }
+  terror.state = terror.STATES.IDLE
+
+  terror.u = wc3api.CreateUnit(wc3api.Player(playerID), wc3api.FourCC(unitID), x, y, 0)
+
+  function terror.Update()
+    if terror.state == terror.STATES.IDLE then
+      -- Find target and attack
+      local target = findTarget()
+      wc3api.IssuePointOrder(terror.u, "attack", wc3api.GetUnitX(target), wc3api.GetUnitY(target))
+      terror.state = terror.STATES.ATTACKING_PLAYER
+    elseif terror.state == terror.STATES.ATTACKING_PLAYER then
+      if wc3api.GetUnitCurrentOrder(terror.u) ~= 851983 then
+        terror.state = terror.STATES.IDLE
+      end
+      -- TODO: If in range of gate, attack the gate
+    end
+  end
+
+  return terror
+end
+
+
+function map.Terror_Tests(testFramework)
+  testFramework.Suites.TerrorSuite = {}
+  testFramework.Suites.TerrorSuite.Tests = {}
+  local tsc = testFramework.Suites.TerrorSuite
+
+  local wc3api = {}
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.TerrorCreated()
+    local function findRandomTarget()
+      
+    end
+    -- local terror = map.Terror_Create(x, y, playerID, unitID, wc3api, findRandomTarget)
+  end
+
+end
+
 function map.Commands_Create(wc3api)
   local commands = {}
   commands.list = {}
@@ -692,6 +748,17 @@ function map.Utility_Create()
     return t
   end
 
+  function utility.TableMerge(t1, t2)
+    local t3 = {}
+    for k,v in ipairs(t1) do
+      table.insert(t3, v)
+    end
+    for k,v in ipairs(t2) do
+      table.insert(t3, v)
+    end
+    return t3
+  end
+
   return utility
 end
 
@@ -717,6 +784,23 @@ function map.Utility_Tests(testFramework)
     assert(table.remove(splitString) == "a")
     assert(table.remove(splitString) == "is")
     assert(table.remove(splitString) == "This")
+  end
+
+  function tsu.Tests.MergeTest()
+    local t1 = {}
+    t1[1] = "first"
+    t1[2] = "second"
+    local t2 = {}
+    t2[1] = "third"
+    t2[2] = "fourth"
+
+    local utility = map.Utility_Create()
+
+    local t3 = utility.TableMerge(t1, t2)
+    assert(t3[1] == "first")
+    assert(t3[2] == "second")
+    assert(t3[3] == "third")
+    assert(t3[4] == "fourth")
   end
 end
 
@@ -1322,6 +1406,21 @@ function map.Triggers_Create(wc3api)
     return periodicTrigger
   end
 
+  function triggers.CreateTimedTrigger(time, action)
+    local timedTrigger = {}
+
+    local function ActionWithCleanup()
+      action()
+      wc3api.DestroyTrigger(timedTrigger.trigger)
+    end
+
+    timedTrigger.trigger = wc3api.CreateTrigger()
+    wc3api.TriggerAddAction(timedTrigger.trigger, ActionWithCleanup)
+    wc3api.TriggerRegisterTimerEvent(timedTrigger.trigger, time, wc3api.constants.IS_NOT_PERIODIC)
+
+    return timedTrigger
+  end
+
   return triggers
 end
 function map.DebugTools_Create(wc3api, logging, players, commands, utility, colors)
@@ -1802,6 +1901,22 @@ function map.RealWc3Api_Create()
     return BJDebugMsg(msg)
   end
 
+  function realWc3Api.GetWorldBounds()
+    return GetWorldBounds()
+  end
+
+  function realWc3Api.PingMinimap(x, y, duration)
+    return PingMinimap(x, y, duration)
+  end
+
+  function realWc3Api.PingMinimapEx(x, y, duration, red, green, blue, extraEffects)
+    return PingMinimapEx(x, y, duration, red, green, blue, extraEffects)
+  end
+
+  function realWc3Api.PanCameraToForPlayer(whichPlayer, x, y)
+    return PanCameraToForPlayer(whichPlayer, x, y)
+  end
+
   function realWc3Api.CreateTrigger()
     return CreateTrigger()
   end
@@ -2142,6 +2257,14 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.GetOrderedUnit()
     return GetOrderedUnit()
+  end
+
+  function realWc3Api.GetUnitCurrentOrder(whichUnit)
+    return GetUnitCurrentOrder(whichUnit)
+  end
+
+  function realWc3Api.IssuePointOrder(whichUnit, order, x, y)
+    return IssuePointOrder(whichUnit, order, x, y)
   end
 
   function realWc3Api.GetIssuedOrderId()
@@ -2832,6 +2955,42 @@ function map.RealWc3Api_Create()
     return FogModifierStop(whichFogModifier)
   end
 
+  function realWc3Api.CreateSoundFromLabel(soundLabel, looping, is3D, stopwhenoutofrange, fadeInRate, fadeOutRate)
+    return CreateSoundFromLabel(soundLabel, looping, is3D, stopwhenoutofrange, fadeInRate, fadeOutRate)
+  end
+
+  function realWc3Api.StartSound(soundHandle)
+    return StartSound(soundHandle)
+  end
+
+  function realWc3Api.StopSound(soundHandle, killWhenDone, fadeOut)
+    return StopSound(soundHandle, killWhenDone, fadeOut)
+  end
+
+  function realWc3Api.SetMapMusic(musicName, random, index)
+    return SetMapMusic(musicName, random, index)
+  end
+
+  function realWc3Api.ClearMapMusic()
+    return ClearMapMusic()
+  end
+
+  function realWc3Api.PlayMusic(musicName)
+    return PlayMusic(musicName)
+  end
+
+  function realWc3Api.PlayMusicEx(musicName, frommsecs, fadeinmsecs)
+    return PlayMusicEx(musicName, frommsecs, fadeinmsecs)
+  end
+
+  function realWc3Api.StopMusic(fadeOut)
+    return StopMusic(fadeOut)
+  end
+
+  function realWc3Api.ResumeMusic()
+    return ResumeMusic()
+  end
+
   return realWc3Api
 end
 --luacheck: pop
@@ -2922,6 +3081,22 @@ function TestInit()
 
     end
     xpcall(map.TestContestedShipyard1, print)
+
+    local function TestRegions3()
+      local testregion3 = {}
+      testregion3.x = wc3api.GetRectCenterX(editor.TestRegion3)
+      testregion3.y = wc3api.GetRectCenterY(editor.TestRegion3)
+      local function TestTerror()
+        local function FindDummyUnit()
+          local u = wc3api.CreateUnit(wc3api.Player(0), wc3api.FourCC("hkni"), testregion3.x, testregion3.y, 0)
+          return u
+        end
+        local terror = map.Terror_Create(1, "hkni", 0, 0, wc3api, FindDummyUnit)
+        terror.Update()
+      end
+      TestTerror()
+    end
+    xpcall(TestRegions3, print)
 
     return true
   end

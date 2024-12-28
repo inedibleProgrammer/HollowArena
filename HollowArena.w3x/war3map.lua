@@ -20,6 +20,15 @@ gg_rct_southSeaRect = nil
 gg_rct_eastSeaRect = nil
 gg_rct_waterBossRect = nil
 gg_rct_wormwoodBaseRect = nil
+gg_rct_frontFieldRect = nil
+gg_rct_westFieldRect = nil
+gg_rct_west1Rect = nil
+gg_rct_west2Rect = nil
+gg_rct_west3Rect = nil
+gg_rct_heart1Rect = nil
+gg_rct_heart2Rect = nil
+gg_rct_west4Rect = nil
+gg_rct_west5Rect = nil
 function InitGlobals()
 end
 
@@ -115,35 +124,48 @@ end
 function CreateRegions()
 local we
 
-gg_rct_startRect = Rect(-2816.0, 5472.0, -1408.0, 6880.0)
-gg_rct_wormwoodRect = Rect(4832.0, 8832.0, 6400.0, 9504.0)
 gg_rct_contestedShipyardRect1 = Rect(-6336.0, 2144.0, -5376.0, 3168.0)
+gg_rct_contestedShipyardRect10 = Rect(-544.0, -6976.0, 32.0, -6400.0)
 gg_rct_contestedShipyardRect2 = Rect(1376.0, 8928.0, 1952.0, 9440.0)
-gg_rct_contestedShpyardRect3 = Rect(7456.0, -8480.0, 8352.0, -7872.0)
 gg_rct_contestedShipyardRect4 = Rect(12032.0, -8352.0, 12768.0, -7680.0)
 gg_rct_contestedShipyardRect5 = Rect(6784.0, -13312.0, 7840.0, -12640.0)
 gg_rct_contestedShipyardRect6 = Rect(-5184.0, -13568.0, -4320.0, -12576.0)
 gg_rct_contestedShipyardRect7 = Rect(-9728.0, -5920.0, -8640.0, -4864.0)
 gg_rct_contestedShipyardRect8 = Rect(10048.0, -12832.0, 11136.0, -11808.0)
 gg_rct_contestedShipyardRect9 = Rect(-2400.0, -9920.0, -1184.0, -8992.0)
-gg_rct_contestedShipyardRect10 = Rect(-544.0, -6976.0, 32.0, -6400.0)
-gg_rct_northSeaRect = Rect(-15776.0, 11008.0, 15584.0, 15392.0)
-gg_rct_westSeaRect = Rect(-15776.0, -15872.0, -12352.0, 15488.0)
-gg_rct_southSeaRect = Rect(-4288.0, -15776.0, 15296.0, -13664.0)
+gg_rct_contestedShpyardRect3 = Rect(7456.0, -8480.0, 8352.0, -7872.0)
 gg_rct_eastSeaRect = Rect(13056.0, -15808.0, 15520.0, 15520.0)
+gg_rct_frontFieldRect = Rect(1088.0, -3904.0, 8128.0, 1632.0)
+gg_rct_heart1Rect = Rect(1088.0, -11168.0, 3360.0, -6016.0)
+gg_rct_heart2Rect = Rect(3392.0, -9152.0, 6464.0, -6304.0)
+gg_rct_northSeaRect = Rect(-15776.0, 11008.0, 15584.0, 15392.0)
+gg_rct_southSeaRect = Rect(-4288.0, -15776.0, 15296.0, -13664.0)
+gg_rct_startRect = Rect(-2816.0, 5472.0, -1408.0, 6880.0)
 gg_rct_waterBossRect = Rect(12800.0, 1088.0, 14816.0, 3424.0)
+gg_rct_west1Rect = Rect(-9056.0, -3808.0, -8032.0, 7840.0)
+gg_rct_west2Rect = Rect(-8032.0, -4096.0, -5504.0, -672.0)
+gg_rct_west3Rect = Rect(-8128.0, -10048.0, -6976.0, -8192.0)
+gg_rct_west4Rect = Rect(-8064.0, 5824.0, -6112.0, 7200.0)
+gg_rct_west5Rect = Rect(-10464.0, -11136.0, -8192.0, -9600.0)
+gg_rct_westFieldRect = Rect(-4032.0, 1920.0, -896.0, 5824.0)
+gg_rct_westSeaRect = Rect(-15776.0, -15872.0, -12352.0, 15488.0)
 gg_rct_wormwoodBaseRect = Rect(64.0, 2112.0, 7872.0, 9984.0)
+gg_rct_wormwoodRect = Rect(4832.0, 8832.0, 6400.0, 9504.0)
 end
 
 map = {}
 map.version = "0.0.0"
-map.commit = "64f66bcd6e44c410192c52e72f88435e95ab12ba"
+map.commit = "016370eb95964cb6248e0951cca0fa5f986f5d24"
 --luacheck: push ignore
 
 -- Interface between the scripting code and the wc3 editor
 function map.Editor_Create()
   local editor = {}
   editor.contestableRects = {}
+  editor.seaRects = {}
+  editor.landRects = {}
+  editor.obeliskRects = {}
+  editor.terrors = {}
 
   editor.startRect = gg_rct_startRect
   editor.wormwoodRect = gg_rct_wormwoodRect
@@ -170,6 +192,37 @@ function map.Editor_Create()
   table.insert(editor.contestableRects, editor.contestedShipyardRect9)
   table.insert(editor.contestableRects, editor.contestedShipyardRect10)
 
+  editor.eastSeaRect = gg_rct_eastSeaRect
+  editor.frontFieldRect = gg_rct_frontFieldRect
+
+  table.insert(editor.obeliskRects, gg_rct_frontFieldRect)
+  table.insert(editor.obeliskRects, gg_rct_heart1Rect)
+  table.insert(editor.obeliskRects, gg_rct_heart2Rect)
+  table.insert(editor.obeliskRects, gg_rct_west1Rect)
+  table.insert(editor.obeliskRects, gg_rct_west2Rect)
+  table.insert(editor.obeliskRects, gg_rct_west3Rect)
+  table.insert(editor.obeliskRects, gg_rct_west4Rect)
+  table.insert(editor.obeliskRects, gg_rct_west5Rect)
+  table.insert(editor.obeliskRects, gg_rct_westFieldRect)
+  table.insert(editor.obeliskRects, gg_rct_west1Rect)
+
+  local firstTerror = {}
+  firstTerror.playerID = 14
+
+  local secondTerror = {}
+  secondTerror.playerID = 18
+
+  local thirdTerror = {}
+  thirdTerror.playerID = 22
+
+  local fourthTerror = {}
+  fourthTerror.playerID = 23
+
+  table.insert(editor.terrors, firstTerror)
+  table.insert(editor.terrors, secondTerror)
+  table.insert(editor.terrors, thirdTerror)
+  table.insert(editor.terrors, fourthTerror)
+
 
 
   return editor
@@ -194,6 +247,7 @@ function map.HollowArena_Initialize()
 
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
+  local gamestate = map.GameState_Create
 
   local function MeleeSetup()
     wc3api.MeleeStartingVisibility()
@@ -221,6 +275,7 @@ function map.HollowArena_Initialize()
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wormwood = map.Wormwood_Create(wc3api, editor, players)
   local contestableManager = map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
+  local obeliskManager = map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
 end
 
 function map.Wagons_Create(wc3api, players, commands, logging, editor)
@@ -808,11 +863,83 @@ function map.Contestable_Tests(testFramework)
 end
 
 
-function map.Obelisk_Create()
+function map.Obelisk_Create(x, y, player, wc3api)
+  local obelisk = {}
+
+  function obelisk.Update()
+    
+  end
+
+  wc3api.CreateUnit(player, wc3api.FourCC("nico"), x, y, 0)
+  wc3api.PingMinimapEx(x, y, 5, 255, 0, 0, false)
+
+  return obelisk
 end
 
 
-function map.ObeliskManager_Create()
+function map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
+  local obeliskManager = {}
+  obeliskManager.UPDATE_PERIOD = 1.0
+  obeliskManager.list = {}
+  obeliskManager.counter = 0
+  obeliskManager.currentTerror = 1
+
+  local function GetRandomRect()
+    local randint = wc3api.GetRandomInt(1, #editor.obeliskRects)
+    -- print(randint)
+    local randomRect = editor.obeliskRects[randint]
+    return randomRect
+  end
+
+  local function GetRandomPointInRect(rect)
+    local xmin = wc3api.GetRectMinX(rect)
+    local xmax = wc3api.GetRectMaxX(rect)
+    local ymin = wc3api.GetRectMinY(rect)
+    local ymax = wc3api.GetRectMaxY(rect)
+
+    local randx = wc3api.GetRandomReal(xmin, xmax)
+    local randy = wc3api.GetRandomReal(ymin, ymax)
+    -- print(rect, xmin, xmax, ymin, ymax)
+    local randpoint = {}
+    randpoint.x = randx
+    randpoint.y = randy
+    return randpoint
+  end
+
+  local function HandleObelisks()
+    local function HandleObelisks2()
+      -- Create an obelisk every gamestate.time
+      if(obeliskManager.counter == 5) then
+        obeliskManager.counter = 0
+
+        local obeliskRect = GetRandomRect()
+        local point = GetRandomPointInRect(obeliskRect)
+        -- print(point.x, point.y)
+        local terrorPlayer = wc3api.Player(editor.terrors[obeliskManager.currentTerror].playerID)
+
+        local obelisk = map.Obelisk_Create(point.x, point.y, terrorPlayer, wc3api)
+
+        obeliskManager.currentTerror = obeliskManager.currentTerror + 1
+      end
+
+      -- Check each obelisk
+      for _, obelisk in pairs(obeliskManager.list) do
+        obelisk.Update()
+      end
+      obeliskManager.counter = obeliskManager.counter + 1
+
+
+
+      if(obeliskManager.currentTerror > 4) then
+        obeliskManager.currentTerror = 1
+      end
+    end
+    xpcall(HandleObelisks2, print)
+  end
+
+  obeliskManager.periodicTrigger = triggers.CreatePeriodicTrigger(obeliskManager.UPDATE_PERIOD, HandleObelisks)
+
+  return obeliskManager
 end
 
 
@@ -823,11 +950,67 @@ function map.Obelisk_Tests(testFramework)
   testFramework.Suites.ObeliskSuite.Tests = {}
   local tsc = testFramework.Suites.ObeliskSuite
 
+  local wc3api = {}
+
   function tsc.Setup() end
   function tsc.Teardown() end
 
-  function tsc.Tests.ObeliskDummy()
+  function tsc.Tests.ObeliskCreated()
+
+    -- local obelisk = map.Obelisk_Create(0, 0, player, wc3api)
   end
+end
+function map.Terror_Create(playerID, unitID, x, y, wc3api, findTarget)
+  local terror = {}
+  terror.STATES = {
+    IDLE = 1,
+    ATTACKING_PLAYER = 2,
+  }
+  terror.state = terror.STATES.IDLE
+
+  terror.u = wc3api.CreateUnit(wc3api.Player(playerID), wc3api.FourCC(unitID), x, y, 0)
+
+  function terror.Update()
+    if terror.state == terror.STATES.IDLE then
+      -- Find target and attack
+      local target = findTarget()
+      wc3api.IssuePointOrder(terror.u, "attack", wc3api.GetUnitX(target), wc3api.GetUnitY(target))
+      terror.state = terror.STATES.ATTACKING_PLAYER
+    elseif terror.state == terror.STATES.ATTACKING_PLAYER then
+      if wc3api.GetUnitCurrentOrder(terror.u) ~= 851983 then
+        terror.state = terror.STATES.IDLE
+      end
+      -- TODO: If in range of gate, attack the gate
+    end
+  end
+
+  return terror
+end
+
+
+function map.Terror_Tests(testFramework)
+  testFramework.Suites.TerrorSuite = {}
+  testFramework.Suites.TerrorSuite.Tests = {}
+  local tsc = testFramework.Suites.TerrorSuite
+
+  local wc3api = {}
+
+  function tsc.Setup() end
+  function tsc.Teardown() end
+
+  function tsc.Tests.TerrorCreated()
+    local function findRandomTarget()
+      
+    end
+    -- local terror = map.Terror_Create(x, y, playerID, unitID, wc3api, findRandomTarget)
+  end
+
+end
+
+function map.GameState_Create()
+  local gamestate = {}
+
+  return gamestate
 end
 function map.Commands_Create(wc3api)
   local commands = {}
@@ -939,6 +1122,17 @@ function map.Utility_Create()
     return t
   end
 
+  function utility.TableMerge(t1, t2)
+    local t3 = {}
+    for k,v in ipairs(t1) do
+      table.insert(t3, v)
+    end
+    for k,v in ipairs(t2) do
+      table.insert(t3, v)
+    end
+    return t3
+  end
+
   return utility
 end
 
@@ -964,6 +1158,23 @@ function map.Utility_Tests(testFramework)
     assert(table.remove(splitString) == "a")
     assert(table.remove(splitString) == "is")
     assert(table.remove(splitString) == "This")
+  end
+
+  function tsu.Tests.MergeTest()
+    local t1 = {}
+    t1[1] = "first"
+    t1[2] = "second"
+    local t2 = {}
+    t2[1] = "third"
+    t2[2] = "fourth"
+
+    local utility = map.Utility_Create()
+
+    local t3 = utility.TableMerge(t1, t2)
+    assert(t3[1] == "first")
+    assert(t3[2] == "second")
+    assert(t3[3] == "third")
+    assert(t3[4] == "fourth")
   end
 end
 
@@ -1091,7 +1302,7 @@ function map.Clock_Create()
     local timeElapsed = clock.TimeElapsed()
 
     timeString = tostring(timeElapsed.hours) .. ":" .. tostring(timeElapsed.minutes) .. ":" .. tostring(timeElapsed.seconds)
-    -- timeString = string.format("-243314816:10:00", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
+    -- timeString = string.format("-243315840:10:00", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
 
     return timeString
   end
@@ -2031,6 +2242,14 @@ function map.RealWc3Api_Create()
     return BJDebugMsg(msg)
   end
 
+  function realWc3Api.GetRandomInt(lowBound, highBound)
+    return GetRandomInt(lowBound, highBound)
+  end
+
+  function realWc3Api.GetRandomReal(lowBound, highBound)
+    return GetRandomReal(lowBound, highBound)
+  end
+
   function realWc3Api.GetWorldBounds()
     return GetWorldBounds()
   end
@@ -2041,6 +2260,10 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.PingMinimapEx(x, y, duration, red, green, blue, extraEffects)
     return PingMinimapEx(x, y, duration, red, green, blue, extraEffects)
+  end
+
+  function realWc3Api.PanCameraToForPlayer(whichPlayer, x, y)
+    return PanCameraToForPlayer(whichPlayer, x, y)
   end
 
   function realWc3Api.CreateTrigger()
@@ -2383,6 +2606,14 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.GetOrderedUnit()
     return GetOrderedUnit()
+  end
+
+  function realWc3Api.GetUnitCurrentOrder(whichUnit)
+    return GetUnitCurrentOrder(whichUnit)
+  end
+
+  function realWc3Api.IssuePointOrder(whichUnit, order, x, y)
+    return IssuePointOrder(whichUnit, order, x, y)
   end
 
   function realWc3Api.GetIssuedOrderId()
@@ -3073,6 +3304,42 @@ function map.RealWc3Api_Create()
     return FogModifierStop(whichFogModifier)
   end
 
+  function realWc3Api.CreateSoundFromLabel(soundLabel, looping, is3D, stopwhenoutofrange, fadeInRate, fadeOutRate)
+    return CreateSoundFromLabel(soundLabel, looping, is3D, stopwhenoutofrange, fadeInRate, fadeOutRate)
+  end
+
+  function realWc3Api.StartSound(soundHandle)
+    return StartSound(soundHandle)
+  end
+
+  function realWc3Api.StopSound(soundHandle, killWhenDone, fadeOut)
+    return StopSound(soundHandle, killWhenDone, fadeOut)
+  end
+
+  function realWc3Api.SetMapMusic(musicName, random, index)
+    return SetMapMusic(musicName, random, index)
+  end
+
+  function realWc3Api.ClearMapMusic()
+    return ClearMapMusic()
+  end
+
+  function realWc3Api.PlayMusic(musicName)
+    return PlayMusic(musicName)
+  end
+
+  function realWc3Api.PlayMusicEx(musicName, frommsecs, fadeinmsecs)
+    return PlayMusicEx(musicName, frommsecs, fadeinmsecs)
+  end
+
+  function realWc3Api.StopMusic(fadeOut)
+    return StopMusic(fadeOut)
+  end
+
+  function realWc3Api.ResumeMusic()
+    return ResumeMusic()
+  end
+
   return realWc3Api
 end
 --luacheck: pop
@@ -3117,6 +3384,7 @@ function map.UnitTests()
   map.Wagons_Tests(testFramework)
   map.Contestable_Tests(testFramework)
   map.Obelisk_Tests(testFramework)
+  map.Terror_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 
@@ -3210,20 +3478,37 @@ SetPlayerColor(Player(11), ConvertPlayerColor(11))
 SetPlayerRacePreference(Player(11), RACE_PREF_RANDOM)
 SetPlayerRaceSelectable(Player(11), true)
 SetPlayerController(Player(11), MAP_CONTROL_USER)
-SetPlayerStartLocation(Player(20), 12)
-ForcePlayerStartLocation(Player(20), 12)
+SetPlayerStartLocation(Player(14), 12)
+ForcePlayerStartLocation(Player(14), 12)
+SetPlayerColor(Player(14), ConvertPlayerColor(14))
+SetPlayerRacePreference(Player(14), RACE_PREF_UNDEAD)
+SetPlayerRaceSelectable(Player(14), false)
+SetPlayerController(Player(14), MAP_CONTROL_COMPUTER)
+SetPlayerStartLocation(Player(16), 13)
+SetPlayerColor(Player(16), ConvertPlayerColor(16))
+SetPlayerRacePreference(Player(16), RACE_PREF_HUMAN)
+SetPlayerRaceSelectable(Player(16), false)
+SetPlayerController(Player(16), MAP_CONTROL_COMPUTER)
+SetPlayerStartLocation(Player(18), 14)
+ForcePlayerStartLocation(Player(18), 14)
+SetPlayerColor(Player(18), ConvertPlayerColor(18))
+SetPlayerRacePreference(Player(18), RACE_PREF_UNDEAD)
+SetPlayerRaceSelectable(Player(18), false)
+SetPlayerController(Player(18), MAP_CONTROL_COMPUTER)
+SetPlayerStartLocation(Player(20), 15)
+ForcePlayerStartLocation(Player(20), 15)
 SetPlayerColor(Player(20), ConvertPlayerColor(20))
 SetPlayerRacePreference(Player(20), RACE_PREF_UNDEAD)
 SetPlayerRaceSelectable(Player(20), false)
 SetPlayerController(Player(20), MAP_CONTROL_COMPUTER)
-SetPlayerStartLocation(Player(22), 13)
-ForcePlayerStartLocation(Player(22), 13)
+SetPlayerStartLocation(Player(22), 16)
+ForcePlayerStartLocation(Player(22), 16)
 SetPlayerColor(Player(22), ConvertPlayerColor(22))
 SetPlayerRacePreference(Player(22), RACE_PREF_UNDEAD)
 SetPlayerRaceSelectable(Player(22), false)
 SetPlayerController(Player(22), MAP_CONTROL_COMPUTER)
-SetPlayerStartLocation(Player(23), 14)
-ForcePlayerStartLocation(Player(23), 14)
+SetPlayerStartLocation(Player(23), 17)
+ForcePlayerStartLocation(Player(23), 17)
 SetPlayerColor(Player(23), ConvertPlayerColor(23))
 SetPlayerRacePreference(Player(23), RACE_PREF_UNDEAD)
 SetPlayerRaceSelectable(Player(23), false)
@@ -3243,34 +3528,136 @@ SetPlayerTeam(Player(8), 0)
 SetPlayerTeam(Player(9), 0)
 SetPlayerTeam(Player(10), 0)
 SetPlayerTeam(Player(11), 0)
+SetPlayerTeam(Player(14), 1)
+SetPlayerState(Player(14), PLAYER_STATE_ALLIED_VICTORY, 1)
+SetPlayerTeam(Player(16), 1)
+SetPlayerState(Player(16), PLAYER_STATE_ALLIED_VICTORY, 1)
+SetPlayerTeam(Player(18), 1)
+SetPlayerState(Player(18), PLAYER_STATE_ALLIED_VICTORY, 1)
 SetPlayerTeam(Player(20), 1)
 SetPlayerState(Player(20), PLAYER_STATE_ALLIED_VICTORY, 1)
 SetPlayerTeam(Player(22), 1)
 SetPlayerState(Player(22), PLAYER_STATE_ALLIED_VICTORY, 1)
 SetPlayerTeam(Player(23), 1)
 SetPlayerState(Player(23), PLAYER_STATE_ALLIED_VICTORY, 1)
+SetPlayerAllianceStateAllyBJ(Player(14), Player(16), true)
+SetPlayerAllianceStateAllyBJ(Player(14), Player(18), true)
+SetPlayerAllianceStateAllyBJ(Player(14), Player(20), true)
+SetPlayerAllianceStateAllyBJ(Player(14), Player(22), true)
+SetPlayerAllianceStateAllyBJ(Player(14), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(16), Player(14), true)
+SetPlayerAllianceStateAllyBJ(Player(16), Player(18), true)
+SetPlayerAllianceStateAllyBJ(Player(16), Player(20), true)
+SetPlayerAllianceStateAllyBJ(Player(16), Player(22), true)
+SetPlayerAllianceStateAllyBJ(Player(16), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(18), Player(14), true)
+SetPlayerAllianceStateAllyBJ(Player(18), Player(16), true)
+SetPlayerAllianceStateAllyBJ(Player(18), Player(20), true)
+SetPlayerAllianceStateAllyBJ(Player(18), Player(22), true)
+SetPlayerAllianceStateAllyBJ(Player(18), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(20), Player(14), true)
+SetPlayerAllianceStateAllyBJ(Player(20), Player(16), true)
+SetPlayerAllianceStateAllyBJ(Player(20), Player(18), true)
 SetPlayerAllianceStateAllyBJ(Player(20), Player(22), true)
 SetPlayerAllianceStateAllyBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(22), Player(14), true)
+SetPlayerAllianceStateAllyBJ(Player(22), Player(16), true)
+SetPlayerAllianceStateAllyBJ(Player(22), Player(18), true)
 SetPlayerAllianceStateAllyBJ(Player(22), Player(20), true)
 SetPlayerAllianceStateAllyBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateAllyBJ(Player(23), Player(14), true)
+SetPlayerAllianceStateAllyBJ(Player(23), Player(16), true)
+SetPlayerAllianceStateAllyBJ(Player(23), Player(18), true)
 SetPlayerAllianceStateAllyBJ(Player(23), Player(20), true)
 SetPlayerAllianceStateAllyBJ(Player(23), Player(22), true)
+SetPlayerAllianceStateVisionBJ(Player(14), Player(16), true)
+SetPlayerAllianceStateVisionBJ(Player(14), Player(18), true)
+SetPlayerAllianceStateVisionBJ(Player(14), Player(20), true)
+SetPlayerAllianceStateVisionBJ(Player(14), Player(22), true)
+SetPlayerAllianceStateVisionBJ(Player(14), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(16), Player(14), true)
+SetPlayerAllianceStateVisionBJ(Player(16), Player(18), true)
+SetPlayerAllianceStateVisionBJ(Player(16), Player(20), true)
+SetPlayerAllianceStateVisionBJ(Player(16), Player(22), true)
+SetPlayerAllianceStateVisionBJ(Player(16), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(18), Player(14), true)
+SetPlayerAllianceStateVisionBJ(Player(18), Player(16), true)
+SetPlayerAllianceStateVisionBJ(Player(18), Player(20), true)
+SetPlayerAllianceStateVisionBJ(Player(18), Player(22), true)
+SetPlayerAllianceStateVisionBJ(Player(18), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(20), Player(14), true)
+SetPlayerAllianceStateVisionBJ(Player(20), Player(16), true)
+SetPlayerAllianceStateVisionBJ(Player(20), Player(18), true)
 SetPlayerAllianceStateVisionBJ(Player(20), Player(22), true)
 SetPlayerAllianceStateVisionBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(22), Player(14), true)
+SetPlayerAllianceStateVisionBJ(Player(22), Player(16), true)
+SetPlayerAllianceStateVisionBJ(Player(22), Player(18), true)
 SetPlayerAllianceStateVisionBJ(Player(22), Player(20), true)
 SetPlayerAllianceStateVisionBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateVisionBJ(Player(23), Player(14), true)
+SetPlayerAllianceStateVisionBJ(Player(23), Player(16), true)
+SetPlayerAllianceStateVisionBJ(Player(23), Player(18), true)
 SetPlayerAllianceStateVisionBJ(Player(23), Player(20), true)
 SetPlayerAllianceStateVisionBJ(Player(23), Player(22), true)
+SetPlayerAllianceStateControlBJ(Player(14), Player(16), true)
+SetPlayerAllianceStateControlBJ(Player(14), Player(18), true)
+SetPlayerAllianceStateControlBJ(Player(14), Player(20), true)
+SetPlayerAllianceStateControlBJ(Player(14), Player(22), true)
+SetPlayerAllianceStateControlBJ(Player(14), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(16), Player(14), true)
+SetPlayerAllianceStateControlBJ(Player(16), Player(18), true)
+SetPlayerAllianceStateControlBJ(Player(16), Player(20), true)
+SetPlayerAllianceStateControlBJ(Player(16), Player(22), true)
+SetPlayerAllianceStateControlBJ(Player(16), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(18), Player(14), true)
+SetPlayerAllianceStateControlBJ(Player(18), Player(16), true)
+SetPlayerAllianceStateControlBJ(Player(18), Player(20), true)
+SetPlayerAllianceStateControlBJ(Player(18), Player(22), true)
+SetPlayerAllianceStateControlBJ(Player(18), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(20), Player(14), true)
+SetPlayerAllianceStateControlBJ(Player(20), Player(16), true)
+SetPlayerAllianceStateControlBJ(Player(20), Player(18), true)
 SetPlayerAllianceStateControlBJ(Player(20), Player(22), true)
 SetPlayerAllianceStateControlBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(22), Player(14), true)
+SetPlayerAllianceStateControlBJ(Player(22), Player(16), true)
+SetPlayerAllianceStateControlBJ(Player(22), Player(18), true)
 SetPlayerAllianceStateControlBJ(Player(22), Player(20), true)
 SetPlayerAllianceStateControlBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateControlBJ(Player(23), Player(14), true)
+SetPlayerAllianceStateControlBJ(Player(23), Player(16), true)
+SetPlayerAllianceStateControlBJ(Player(23), Player(18), true)
 SetPlayerAllianceStateControlBJ(Player(23), Player(20), true)
 SetPlayerAllianceStateControlBJ(Player(23), Player(22), true)
+SetPlayerAllianceStateFullControlBJ(Player(14), Player(16), true)
+SetPlayerAllianceStateFullControlBJ(Player(14), Player(18), true)
+SetPlayerAllianceStateFullControlBJ(Player(14), Player(20), true)
+SetPlayerAllianceStateFullControlBJ(Player(14), Player(22), true)
+SetPlayerAllianceStateFullControlBJ(Player(14), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(16), Player(14), true)
+SetPlayerAllianceStateFullControlBJ(Player(16), Player(18), true)
+SetPlayerAllianceStateFullControlBJ(Player(16), Player(20), true)
+SetPlayerAllianceStateFullControlBJ(Player(16), Player(22), true)
+SetPlayerAllianceStateFullControlBJ(Player(16), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(18), Player(14), true)
+SetPlayerAllianceStateFullControlBJ(Player(18), Player(16), true)
+SetPlayerAllianceStateFullControlBJ(Player(18), Player(20), true)
+SetPlayerAllianceStateFullControlBJ(Player(18), Player(22), true)
+SetPlayerAllianceStateFullControlBJ(Player(18), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(20), Player(14), true)
+SetPlayerAllianceStateFullControlBJ(Player(20), Player(16), true)
+SetPlayerAllianceStateFullControlBJ(Player(20), Player(18), true)
 SetPlayerAllianceStateFullControlBJ(Player(20), Player(22), true)
 SetPlayerAllianceStateFullControlBJ(Player(20), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(22), Player(14), true)
+SetPlayerAllianceStateFullControlBJ(Player(22), Player(16), true)
+SetPlayerAllianceStateFullControlBJ(Player(22), Player(18), true)
 SetPlayerAllianceStateFullControlBJ(Player(22), Player(20), true)
 SetPlayerAllianceStateFullControlBJ(Player(22), Player(23), true)
+SetPlayerAllianceStateFullControlBJ(Player(23), Player(14), true)
+SetPlayerAllianceStateFullControlBJ(Player(23), Player(16), true)
+SetPlayerAllianceStateFullControlBJ(Player(23), Player(18), true)
 SetPlayerAllianceStateFullControlBJ(Player(23), Player(20), true)
 SetPlayerAllianceStateFullControlBJ(Player(23), Player(22), true)
 end
@@ -3318,23 +3705,81 @@ SetStartLocPrioCount(11, 3)
 SetStartLocPrio(11, 0, 0, MAP_LOC_PRIO_HIGH)
 SetStartLocPrio(11, 1, 1, MAP_LOC_PRIO_HIGH)
 SetStartLocPrio(11, 2, 10, MAP_LOC_PRIO_HIGH)
-SetStartLocPrioCount(12, 3)
-SetStartLocPrio(12, 0, 0, MAP_LOC_PRIO_HIGH)
-SetStartLocPrio(12, 1, 1, MAP_LOC_PRIO_LOW)
-SetStartLocPrio(12, 2, 3, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrioCount(12, 4)
-SetEnemyStartLocPrio(12, 0, 1, MAP_LOC_PRIO_HIGH)
-SetEnemyStartLocPrio(12, 1, 2, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(12, 2, 3, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(12, 3, 13, MAP_LOC_PRIO_HIGH)
-SetEnemyStartLocPrioCount(13, 6)
-SetEnemyStartLocPrio(13, 0, 4, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(13, 1, 5, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(13, 2, 7, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(13, 3, 8, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(13, 4, 9, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrio(13, 5, 10, MAP_LOC_PRIO_LOW)
-SetEnemyStartLocPrioCount(14, 1)
+SetStartLocPrioCount(13, 3)
+SetStartLocPrio(13, 0, 0, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(13, 1, 5, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(13, 2, 7, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrioCount(13, 15)
+SetEnemyStartLocPrio(13, 0, 1, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 1, 2, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 2, 3, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 3, 4, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 4, 5, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 5, 6, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 6, 7, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 7, 8, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 8, 9, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 9, 10, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 10, 11, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(13, 11, 12, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 12, 14, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(13, 13, 15, MAP_LOC_PRIO_LOW)
+SetStartLocPrioCount(14, 13)
+SetStartLocPrio(14, 0, 0, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 1, 1, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 2, 2, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 3, 3, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 4, 4, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 5, 5, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 6, 6, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 7, 7, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 8, 13, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 9, 15, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 10, 16, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(14, 11, 17, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrioCount(14, 13)
+SetEnemyStartLocPrio(14, 0, 0, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 1, 1, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 2, 2, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 3, 3, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 4, 4, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 5, 5, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 6, 6, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 7, 7, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 8, 13, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 9, 15, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 10, 16, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(14, 11, 17, MAP_LOC_PRIO_LOW)
+SetStartLocPrioCount(15, 5)
+SetStartLocPrio(15, 0, 0, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(15, 1, 1, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(15, 2, 3, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(15, 3, 13, MAP_LOC_PRIO_LOW)
+SetStartLocPrio(15, 4, 14, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrioCount(15, 6)
+SetEnemyStartLocPrio(15, 0, 1, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrio(15, 1, 2, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(15, 2, 3, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(15, 3, 13, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(15, 4, 14, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(15, 5, 16, MAP_LOC_PRIO_HIGH)
+SetStartLocPrioCount(16, 1)
+SetStartLocPrio(16, 0, 14, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrioCount(16, 8)
+SetEnemyStartLocPrio(16, 0, 4, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 1, 5, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 2, 7, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 3, 8, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 4, 9, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 5, 10, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 6, 13, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(16, 7, 14, MAP_LOC_PRIO_LOW)
+SetStartLocPrioCount(17, 2)
+SetStartLocPrio(17, 0, 13, MAP_LOC_PRIO_HIGH)
+SetStartLocPrio(17, 1, 14, MAP_LOC_PRIO_HIGH)
+SetEnemyStartLocPrioCount(17, 3)
+SetEnemyStartLocPrio(17, 0, 13, MAP_LOC_PRIO_LOW)
+SetEnemyStartLocPrio(17, 1, 14, MAP_LOC_PRIO_LOW)
 end
 
 function main()
@@ -3361,8 +3806,8 @@ end
 function config()
 SetMapName("TRIGSTR_001")
 SetMapDescription("TRIGSTR_003")
-SetPlayers(15)
-SetTeams(15)
+SetPlayers(18)
+SetTeams(18)
 SetGamePlacement(MAP_PLACEMENT_TEAMS_TOGETHER)
 DefineStartLocation(0, -6464.0, 4608.0)
 DefineStartLocation(1, -6592.0, -5760.0)
@@ -3376,9 +3821,12 @@ DefineStartLocation(8, -128.0, -10816.0)
 DefineStartLocation(9, -4160.0, -10752.0)
 DefineStartLocation(10, -448.0, -5056.0)
 DefineStartLocation(11, -2944.0, -640.0)
-DefineStartLocation(12, 5632.0, 9152.0)
-DefineStartLocation(13, 2944.0, 7616.0)
-DefineStartLocation(14, 6464.0, 6784.0)
+DefineStartLocation(12, -7040.0, -13120.0)
+DefineStartLocation(13, -7296.0, -12480.0)
+DefineStartLocation(14, -6016.0, -13120.0)
+DefineStartLocation(15, 5632.0, 9152.0)
+DefineStartLocation(16, 2944.0, 7616.0)
+DefineStartLocation(17, 6464.0, 6784.0)
 InitCustomPlayerSlots()
 InitCustomTeams()
 InitAllyPriorities()

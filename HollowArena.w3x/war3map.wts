@@ -103,13 +103,28 @@ STRING 22
 Monsters
 }
 
-STRING 23
-{
-Terror
-}
-
 STRING 24
 {
 Defenders
+}
+
+STRING 25
+{
+FirstTerror
+}
+
+STRING 26
+{
+SecondTerror
+}
+
+STRING 27
+{
+ThirdTerror
+}
+
+STRING 28
+{
+FourthTerror
 }
 
