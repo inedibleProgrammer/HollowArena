@@ -1,34 +1,35 @@
-gg_rct_startRect = nil
-gg_rct_wormwoodRect = nil
 gg_rct_contestedShipyardRect1 = nil
-gg_snd_Warning = nil
-gg_snd_Tension = nil
-gg_trg_LaunchLua = nil
-gg_trg_Melee_Initialization = nil
+gg_rct_contestedShipyardRect10 = nil
+gg_rct_contestedShipyardRect11 = nil
 gg_rct_contestedShipyardRect2 = nil
-gg_rct_contestedShpyardRect3 = nil
 gg_rct_contestedShipyardRect4 = nil
 gg_rct_contestedShipyardRect5 = nil
 gg_rct_contestedShipyardRect6 = nil
 gg_rct_contestedShipyardRect7 = nil
 gg_rct_contestedShipyardRect8 = nil
 gg_rct_contestedShipyardRect9 = nil
-gg_rct_contestedShipyardRect10 = nil
-gg_rct_northSeaRect = nil
-gg_rct_westSeaRect = nil
-gg_rct_southSeaRect = nil
+gg_rct_contestedShpyardRect3 = nil
 gg_rct_eastSeaRect = nil
-gg_rct_waterBossRect = nil
-gg_rct_wormwoodBaseRect = nil
 gg_rct_frontFieldRect = nil
-gg_rct_westFieldRect = nil
+gg_rct_heart1Rect = nil
+gg_rct_heart2Rect = nil
+gg_rct_northSeaRect = nil
+gg_rct_southSeaRect = nil
+gg_rct_startRect = nil
+gg_rct_waterBossRect = nil
 gg_rct_west1Rect = nil
 gg_rct_west2Rect = nil
 gg_rct_west3Rect = nil
-gg_rct_heart1Rect = nil
-gg_rct_heart2Rect = nil
 gg_rct_west4Rect = nil
 gg_rct_west5Rect = nil
+gg_rct_westFieldRect = nil
+gg_rct_westSeaRect = nil
+gg_rct_wormwoodBaseRect = nil
+gg_rct_wormwoodRect = nil
+gg_snd_Warning = nil
+gg_snd_Tension = nil
+gg_trg_LaunchLua = nil
+gg_trg_Melee_Initialization = nil
 function InitGlobals()
 end
 
@@ -126,6 +127,7 @@ local we
 
 gg_rct_contestedShipyardRect1 = Rect(-6336.0, 2144.0, -5376.0, 3168.0)
 gg_rct_contestedShipyardRect10 = Rect(-544.0, -6976.0, 32.0, -6400.0)
+gg_rct_contestedShipyardRect11 = Rect(-10496.0, -13664.0, -9664.0, -12928.0)
 gg_rct_contestedShipyardRect2 = Rect(1376.0, 8928.0, 1952.0, 9440.0)
 gg_rct_contestedShipyardRect4 = Rect(12032.0, -8352.0, 12768.0, -7680.0)
 gg_rct_contestedShipyardRect5 = Rect(6784.0, -13312.0, 7840.0, -12640.0)
@@ -155,7 +157,7 @@ end
 
 map = {}
 map.version = "0.0.0"
-map.commit = "016370eb95964cb6248e0951cca0fa5f986f5d24"
+map.commit = "8c37aa9f02b40de7e80a6c565746503003d7c626"
 --luacheck: push ignore
 
 -- Interface between the scripting code and the wc3 editor
@@ -181,6 +183,7 @@ function map.Editor_Create()
   editor.contestedShipyardRect8 = gg_rct_contestedShipyardRect8
   editor.contestedShipyardRect9 = gg_rct_contestedShipyardRect9
   editor.contestedShipyardRect10 = gg_rct_contestedShipyardRect10
+  editor.contestedShipyardRect11 = gg_rct_contestedShipyardRect11
   table.insert(editor.contestableRects, editor.contestedShipyardRect1)
   table.insert(editor.contestableRects, editor.contestedShipyardRect2)
   table.insert(editor.contestableRects, editor.contestedShipyardRect3)
@@ -191,6 +194,7 @@ function map.Editor_Create()
   table.insert(editor.contestableRects, editor.contestedShipyardRect8)
   table.insert(editor.contestableRects, editor.contestedShipyardRect9)
   table.insert(editor.contestableRects, editor.contestedShipyardRect10)
+  table.insert(editor.contestableRects, editor.contestedShipyardRect11)
 
   editor.eastSeaRect = gg_rct_eastSeaRect
   editor.frontFieldRect = gg_rct_frontFieldRect
@@ -236,7 +240,8 @@ function map.HollowArena_Initialize()
   local utility = map.Utility_Create()
   local commands = map.Commands_Create(wc3api)
   local clock = map.Clock_Create()
-  local authenticatedNames = {"WorldEdit", "MasterLich#11192", "MagicDoor#1685"}
+  -- local authenticatedNames = {"WorldEdit", "MasterLich#11192", "MagicDoor#1685"}
+  local authenticatedNames = {"WorldEdit", "MasterLich#11192"}
   local players = map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
   local gameClock = map.GameClock_Create(wc3api, clock, commands, players)
   local logging = map.Logging_Create(wc3api, gameClock, commands, players)
@@ -247,7 +252,17 @@ function map.HollowArena_Initialize()
 
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
-  local gamestate = map.GameState_Create
+  local gamestate = map.GameState_Create()
+  local unitList = map.UnitList_Create(utility)
+
+  local sounds = map.Sounds_Create(wc3api)
+  sounds.PlayTension()
+
+  local function PlaySounds()
+    sounds.PlayKidLaughing()
+  end
+
+  triggers.CreatePeriodicTrigger(60, PlaySounds)
 
   local function MeleeSetup()
     wc3api.MeleeStartingVisibility()
@@ -269,13 +284,11 @@ function map.HollowArena_Initialize()
 
   xpcall(MeleeSetup, print)
 
-
-
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wormwood = map.Wormwood_Create(wc3api, editor, players)
   local contestableManager = map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
-  local obeliskManager = map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
+  local obeliskManager = map.ObeliskManager_Create(wc3api, gamestate, editor, triggers, unitList)
 end
 
 function map.Wagons_Create(wc3api, players, commands, logging, editor)
@@ -297,10 +310,14 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
       local thePlayer = wc3api.GetTriggerPlayer()
       local playerName = wc3api.GetPlayerName(thePlayer)
 
+      wc3api.BJDebugMsg("P1")
+
       for _,wagonData in pairs(wagons.list) do
-        if(wagonData.built == true) then return end
+        -- if(wagonData.built == true) then return end
         if(thePlayer == wagonData.playerref) then
+          wc3api.BJDebugMsg("P2")
           if(wc3api.IsUnitInRange(wagonData.unit, theBuilding, 120)) then
+            wc3api.BJDebugMsg("P3")
             local baseID = wc3api.GetUnitTypeId(theBuilding)
             local basex = wc3api.GetUnitX(theBuilding)
             local basey = wc3api.GetUnitY(theBuilding)
@@ -311,6 +328,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
             wagonData.built = true
 
+            wc3api.BJDebugMsg("P4")
+
             if baseID == wc3api.FourCC("htow") then
               wagonData.race = "human"
             elseif baseID == wc3api.FourCC("ogre") then
@@ -320,6 +339,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             elseif baseID == wc3api.FourCC("etol") then
               wagonData.race = "elf"
             end
+
+            wc3api.BJDebugMsg("P5")
 
 
             wagonLog.message = playerName .. " builds town hall" .. " and is race " .. wagonData.race
@@ -863,30 +884,121 @@ function map.Contestable_Tests(testFramework)
 end
 
 
-function map.Obelisk_Create(x, y, player, wc3api)
+function map.Obelisk_FindTarget(unit, wc3api)
+  -- Find a random player that has at least 1 unit
+  local g = wc3api.CreateGroup()
+  local playerID = 0
+  local groupSize = 0
+  repeat -- TODO: Keep a list of living players to optimize this
+    playerID = wc3api.GetRandomInt(0, 11)
+    wc3api.GroupEnumUnitsOfPlayer(g, wc3api.Player(playerID), wc3api.constants.NO_FILTER)
+    groupSize = wc3api.BlzGroupGetSize(g)
+  until (groupSize > 0)
+
+
+  -- Find a random unit of that player to attack
+  local randIndex = wc3api.GetRandomInt(0, groupSize)
+  local unitTarget = wc3api.BlzGroupUnitAt(g, randIndex)
+  wc3api.DestroyGroup(g)
+  return unitTarget
+end
+
+function map.Obelisk_Create(x, y, player, wc3api, unitList, gamestate)
   local obelisk = {}
+  obelisk.counter = 0
 
   function obelisk.Update()
-    
+    local function DetermineUnitToSpawn()
+      local u = nil
+      local isHero = true
+      local levelRestraint = true
+      local badUnit = false
+      local attemptCounter = 10
+
+      -- Select a random unit that is not a hero, and meets the level restraint:
+      while( ((isHero == true) or (levelRestraint == true) or (badUnit == true)) and (attemptCounter >= 0) ) do
+        local r = wc3api.GetRandomInt(1, #unitList.allUnitList)
+        local uID = unitList.allUnitList[r]
+
+        isHero = wc3api.IsHeroUnitId(wc3api.FourCC(unitList.allUnitList[r]))
+        levelRestraint = (wc3api.GetFoodUsed(FourCC(uID)) > gamestate.terrorLevel)
+
+        if(gamestate.terrorLevel < 1) then
+          if(uID == "obai" -- Baine
+             or uID == "nmed" -- Medivh
+             or uID == "hcth" -- Captain
+             or uID == "uktn") -- Kel'Thuzad
+          then
+            badUnit = true
+          end
+        end
+
+        if(uID == "nspc") then -- Support column
+          badUnit = true
+        end
+
+        if(isHero or levelRestraint) then
+          -- Do nothing
+        else
+          if(badUnit) then
+            -- Do nothing
+          else
+            -- u = wc3api.CreateUnit(this.player, wc3api.FourCC(unitList.allUnitList[r]), x, y, 0.0)
+            return unitList.allUnitList[r]
+          end
+        end
+
+        attemptCounter = attemptCounter - 1
+      end
+    end
+
+    local function Modify(unit)
+      wc3api.SetUnitCreepGuard(unit, false)
+      wc3api.RemoveGuardPosition(unit)
+      -- wc3api.SetUnitColor(unit,
+
+      local currentHP = wc3api.BlzGetUnitMaxHP(unit)
+      currentHP = currentHP + (100 * gamestate.unitSteroidCounter)
+      wc3api.BlzSetUnitMaxHP(unit, currentHP)
+      wc3api.SetUnitLifePercentBJ(unit, 100.0)
+    end
+
+    obelisk.counter = obelisk.counter + 1
+
+    if(obelisk.counter >= gamestate.terrorSpawnPeriod) then
+      obelisk.counter = 0
+
+      for i=0, gamestate.terrorSpawnCount do
+        local unitIDToSpawn = DetermineUnitToSpawn()
+        local spawnedUnit = wc3api.CreateUnit(player, wc3api.FourCC(unitIDToSpawn), x, y, 0)
+        Modify(spawnedUnit)
+        local target = map.Obelisk_FindTarget(spawnedUnit, wc3api)
+        wc3api.IssuePointOrder(spawnedUnit, "attack", wc3api.GetUnitX(target), wc3api.GetUnitY(target))
+      end
+
+    end
   end
 
-  wc3api.CreateUnit(player, wc3api.FourCC("nico"), x, y, 0)
+  obelisk.u = wc3api.CreateUnit(player, wc3api.FourCC("nico"), x, y, 0)
+  wc3api.BlzSetUnitMaxHP(obelisk.u, 500)
   wc3api.PingMinimapEx(x, y, 5, 255, 0, 0, false)
 
   return obelisk
 end
 
 
-function map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
+function map.ObeliskManager_Create(wc3api, gamestate, editor, triggers, unitList)
   local obeliskManager = {}
   obeliskManager.UPDATE_PERIOD = 1.0
   obeliskManager.list = {}
-  obeliskManager.counter = 0
+  obeliskManager.spawnCounter = 0
+  obeliskManager.lazyCheckCounter = 0
   obeliskManager.currentTerror = 1
+  obeliskManager.LAZY_CHECK_PERIOD = 5
+  obeliskManager.upgradeCounter = 0
 
   local function GetRandomRect()
     local randint = wc3api.GetRandomInt(1, #editor.obeliskRects)
-    -- print(randint)
     local randomRect = editor.obeliskRects[randint]
     return randomRect
   end
@@ -899,7 +1011,6 @@ function map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
 
     local randx = wc3api.GetRandomReal(xmin, xmax)
     local randy = wc3api.GetRandomReal(ymin, ymax)
-    -- print(rect, xmin, xmax, ymin, ymax)
     local randpoint = {}
     randpoint.x = randx
     randpoint.y = randy
@@ -909,15 +1020,15 @@ function map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
   local function HandleObelisks()
     local function HandleObelisks2()
       -- Create an obelisk every gamestate.time
-      if(obeliskManager.counter == 5) then
-        obeliskManager.counter = 0
+      if(obeliskManager.spawnCounter == gamestate.obeliskSpawnPeriod) then
+        obeliskManager.spawnCounter = 0
 
         local obeliskRect = GetRandomRect()
         local point = GetRandomPointInRect(obeliskRect)
-        -- print(point.x, point.y)
         local terrorPlayer = wc3api.Player(editor.terrors[obeliskManager.currentTerror].playerID)
 
-        local obelisk = map.Obelisk_Create(point.x, point.y, terrorPlayer, wc3api)
+        local obelisk = map.Obelisk_Create(point.x, point.y, terrorPlayer, wc3api, unitList, gamestate)
+        table.insert(obeliskManager.list, obelisk)
 
         obeliskManager.currentTerror = obeliskManager.currentTerror + 1
       end
@@ -926,14 +1037,49 @@ function map.ObeliskManager_Create(wc3api, gamestate, editor, triggers)
       for _, obelisk in pairs(obeliskManager.list) do
         obelisk.Update()
       end
-      obeliskManager.counter = obeliskManager.counter + 1
+      obeliskManager.spawnCounter = obeliskManager.spawnCounter + 1
 
+      if(obeliskManager.upgradeCounter >= gamestate.terrorUpgradePeriod) then
+        obeliskManager.upgradeCounter = 0
 
+        if(gamestate.terrorLevel >= 10) then
+          gamestate.unitSteroidCounter = gamestate.unitSteroidCounter + 1
+        else
+          gamestate.terrorLevel = gamestate.terrorLevel + 1
+        end
+      end
+      obeliskManager.upgradeCounter = obeliskManager.upgradeCounter + 1
 
       if(obeliskManager.currentTerror > 4) then
         obeliskManager.currentTerror = 1
       end
+
+      if(obeliskManager.lazyCheckCounter >= obeliskManager.LAZY_CHECK_PERIOD) then
+        local function OrderLazyUnits()
+          local function IsIdle()
+            local u = wc3api.GetEnumUnit()
+            if( (wc3api.GetUnitCurrentOrder(u) ~= 851983) ) then
+              local target = map.Obelisk_FindTarget(u, wc3api)
+              wc3api.IssuePointOrder(u, "attack", wc3api.GetUnitX(target), wc3api.GetUnitY(target))
+            end
+          end
+
+          for _,terror in pairs(editor.terrors) do
+            local g = wc3api.CreateGroup()
+            local terrorPlayer = wc3api.Player(terror.playerID)
+
+            wc3api.GroupEnumUnitsOfPlayer(g, terrorPlayer, wc3api.constants.NO_FILTER)
+            wc3api.ForGroup(g, IsIdle)
+
+
+            wc3api.DestroyGroup(g)
+          end
+        end
+        obeliskManager.lazyCheckCounter = 0
+        OrderLazyUnits()
+      end
     end
+    obeliskManager.lazyCheckCounter = obeliskManager.lazyCheckCounter + 1
     xpcall(HandleObelisks2, print)
   end
 
@@ -950,67 +1096,727 @@ function map.Obelisk_Tests(testFramework)
   testFramework.Suites.ObeliskSuite.Tests = {}
   local tsc = testFramework.Suites.ObeliskSuite
 
-  local wc3api = {}
+  local utility = map.Utility_Create()
 
-  function tsc.Setup() end
+  local realWc3Api = map.RealWc3Api_Create()
+  local wc3api = {}
+  wc3api.constants = realWc3Api.constants
+  function wc3api.FourCC()
+  end
+  local unitCounter = 0
+  function wc3api.CreateUnit()
+    local unit = "unit" .. tostring(unitCounter)
+    unitCounter = unitCounter + 1
+    return unit
+  end
+  function wc3api.BlzSetUnitMaxHp()
+  end
+  function wc3api.PingMinimapEx()
+  end
+
+  local unitList = map.UnitList_Create(utility)
+
+  local triggers = {}
+  local captureAction = nil
+  function triggers.CreatePeriodicTrigger(p1, action)
+    captureAction = action
+  end
+
+  function tsc.Setup()
+    unitCounter = 0
+  end
   function tsc.Teardown() end
+
+  local OBELISK_SPAWN_PERIOD = 5
+  local TERROR_SPAWN_COUNT = 3
+  local TERROR_SPAWN_PERIOD = 2
+
+  local function NormalSetup()
+    local setup = {}
+
+    setup.x = 0
+    setup.y = 0
+    setup.player = {}
+    setup.utility = map.Utility_Create()
+
+    setup.gamestate =
+      {
+          obeliskSpawnPeriod = OBELISK_SPAWN_PERIOD,
+          terrorSpawnCount = TERROR_SPAWN_COUNT,
+          terrorSpawnPeriod = TERROR_SPAWN_PERIOD,
+      }
+    return setup
+  end
 
   function tsc.Tests.ObeliskCreated()
+    local setup = NormalSetup()
 
-    -- local obelisk = map.Obelisk_Create(0, 0, player, wc3api)
+    local obelisk = map.Obelisk_Create(setup.x, setup.y, setup.player, wc3api, unitList, setup.gamestate)
+
+    assert(unitCounter == 1)
   end
-end
-function map.Terror_Create(playerID, unitID, x, y, wc3api, findTarget)
-  local terror = {}
-  terror.STATES = {
-    IDLE = 1,
-    ATTACKING_PLAYER = 2,
-  }
-  terror.state = terror.STATES.IDLE
 
-  terror.u = wc3api.CreateUnit(wc3api.Player(playerID), wc3api.FourCC(unitID), x, y, 0)
+  function tsc.Tests.ObeliskUpdated()
+    local setup = NormalSetup()
 
-  function terror.Update()
-    if terror.state == terror.STATES.IDLE then
-      -- Find target and attack
-      local target = findTarget()
-      wc3api.IssuePointOrder(terror.u, "attack", wc3api.GetUnitX(target), wc3api.GetUnitY(target))
-      terror.state = terror.STATES.ATTACKING_PLAYER
-    elseif terror.state == terror.STATES.ATTACKING_PLAYER then
-      if wc3api.GetUnitCurrentOrder(terror.u) ~= 851983 then
-        terror.state = terror.STATES.IDLE
-      end
-      -- TODO: If in range of gate, attack the gate
+    local obelisk = map.Obelisk_Create(setup.x, setup.y, setup.player, wc3api, unitList, setup.gamestate)
+
+    obelisk.Update()
+
+    assert(unitCounter == 1)
+  end
+
+  function tsc.Tests.ObeliskSpawnsUnits()
+    local setup = NormalSetup()
+
+    local obelisk = map.Obelisk_Create(setup.x, setup.y, setup.player, wc3api, unitList, setup.gamestate)
+
+    for i=0, TERROR_SPAWN_PERIOD do
+      obelisk.Update()
     end
+
+    assert(unitCounter == 1 + TERROR_SPAWN_COUNT)
   end
 
-  return terror
-end
+  function tsc.Tests.ObeliskCreatesUnitAndResetsCounter()
+    local setup = NormalSetup()
 
+    local obelisk = map.Obelisk_Create(setup.x, setup.y, setup.player, wc3api, unitList, setup.gamestate)
 
-function map.Terror_Tests(testFramework)
-  testFramework.Suites.TerrorSuite = {}
-  testFramework.Suites.TerrorSuite.Tests = {}
-  local tsc = testFramework.Suites.TerrorSuite
+    obelisk.counter = TERROR_SPAWN_PERIOD - 1
 
-  local wc3api = {}
+    obelisk.Update()
 
-  function tsc.Setup() end
-  function tsc.Teardown() end
+    assert(obelisk.counter == 0)
+  end
 
-  function tsc.Tests.TerrorCreated()
-    local function findRandomTarget()
-      
+  function tsc.Tests.ObeliskManagerSpawnCounterInitialized()
+    local setup = NormalSetup()
+
+    local obeliskManager = map.ObeliskManager_Create(wc3api, setup.gamestate, setup.editor, triggers)
+
+    assert(obeliskManager.counter == 0)
+  end
+
+  function tsc.Tests.ObeliskManagerSpawnObelisk()
+    local setup = NormalSetup()
+
+    local obeliskManager = map.ObeliskManager_Create(wc3api, setup.gamestate, setup.editor, triggers, unitList)
+
+    for i=0,OBELISK_SPAWN_PERIOD do
+      -- captureAction()
     end
-    -- local terror = map.Terror_Create(x, y, playerID, unitID, wc3api, findRandomTarget)
+
+    -- assert(#obeliskManager.list == 1)
   end
-
 end
-
 function map.GameState_Create()
   local gamestate = {}
 
+  gamestate.unitSteroidCounter = 0
+  gamestate.terrorSpawnCount = 1
+  gamestate.terrorSpawnPeriod = 5
+  gamestate.obeliskSpawnPeriod = 60
+  gamestate.terrorLevel = 0
+  gamestate.terrorUpgradePeriod = 180
+
   return gamestate
+end
+
+
+
+
+
+function map.UnitList_Create(utility)
+  local unitList = {}
+
+  unitList.humanUnitList =
+    {
+      "hpea",
+      "hfoo",
+      "hkni",
+      "hrif",
+      "hmtm",
+      "hgyr",
+      "hgry",
+      "hmpr",
+      "hsor",
+      "hmtt",
+      "hspt",
+      "hdhw",
+      "Hpal",
+      "Hamg",
+      "Hmkg",
+      "Hblm",
+    }
+
+  unitList.humanCampaignUnitList =
+    {
+      "hhes",
+      "hcth",
+      "hrrh",
+      "nccd",
+      "nccr",
+      "ncco",
+      "nccu",
+      "nwar",
+      "nemi",
+      "nhef",
+      "nhem",
+      "nhea",
+      "nmed",
+      "nser",
+      "hbot",
+      "hdes",
+      "hbsh",
+      "nchp",
+      "nhym",
+      "nws1",
+      "nbee",
+      "njks",
+      "hrdh",
+      "hhdl",
+      "hbew",
+      "nhew",
+      "nbel",
+      "Hssa",
+      "hddt",
+      "Haah",
+      "Hapm",
+      "Hgam",
+      "Hant",
+      "Hart",
+      "Harf",
+      "Hdgo",
+      "Hhkl",
+      "Hjai",
+      "Hjnd",
+      "Hkal",
+      "Hlgr",
+      "Hpb1",
+      "Hmgd",
+      "Hmbr",
+      "Hpb2",
+      "Hvwd",
+      "Huth",
+    }
+
+  unitList.orcUnitList =
+    {
+      "opeo",
+      "ogru",
+      "orai",
+      "otau",
+      "ohun",
+      "ocat",
+      "okod",
+      "owyv",
+      "otbr",
+      "odoc",
+      "oshm",
+      "ospw",
+      "Obla",
+      "Ofar",
+      "Otch",
+      "Oshd",
+    }
+
+  unitList.orcCampaignUnitList =
+    {
+      "owad",
+      "nw2w",
+      "nchw",
+      "nchg",
+      "nchr",
+      "nckb",
+      "ncpn",
+      "obai",
+      "obot",
+      "odes",
+      "ojgn",
+      "nspc",
+      "oosc",
+      "owar",
+      "ogrk",
+      "oswy",
+      "ownr",
+      "odkt",
+      "Nbbc",
+      "Ocbh",
+      "Ocb2",
+      "Nsjs",
+      "Odrt",
+      "Ogrh",
+      "Opgh",
+      "Ogld",
+      "Orex",
+      "Orkn",
+      "Osam",
+      "Othr",
+      "Oths",
+    }
+
+  unitList.undeadUnitList =
+    {
+      "uaco",
+      "ushd",
+      "ugho",
+      "uabo",
+      "umtw",
+      "ucry",
+      "ugar",
+      "uban",
+      "unec",
+      "uobs",
+      "ufro",
+      "Udea",
+      "Ulic",
+      "Udre",
+      "Ucrl",
+    }
+
+  unitList.undeadCampaignUnitList =
+    {
+      "nzom",
+      "nzof",
+      "ubot",
+      "udes",
+      "uubs",
+      "uarb",
+      "uktg",
+      "uktn",
+      "uswb",
+      "ubdd",
+      "ubdr",
+      "Nman",
+      "Uwar",
+      "Npld",
+      "Nklj",
+      "Nmag",
+      "Uanb",
+      "Uear",
+      "Ubal",
+      "Uvng",
+      "Udth",
+      "Uktl",
+      "Umal",
+      "Usyl",
+      "Utic",
+      "Uvar",
+    }
+
+  unitList.nightElfUnitList =
+    {
+      "ewsp",
+      "earc",
+      "esen",
+      "edry",
+      "ebal",
+      "ehip",
+      "ehpr",
+      "echm",
+      "edot",
+      "edoc",
+      "emtg",
+      "efdr",
+      "Ekee",
+      "Emoo",
+      "Edem",
+      "Ewar",
+    }
+
+  unitList.nightElfCampaignUnitList = 
+    {
+      "nthr",
+      "etrs",
+      "edes",
+      "ebsh",
+      "enec",
+      "eilw",
+      "nwat",
+      "ensh",
+      "nssn",
+      "eshd",
+      "Ecen",
+      "Ekgg",
+      "Eill",
+      "Eevi",
+      "Ewrd",
+      "Emns",
+      "Emfr",
+      "Efur",
+      "Etyr",
+    }
+
+  unitList.nagaUnitList =
+    {
+      "nwgs",
+      "nnmg",
+      "nnsw",
+      "nsnp",
+      "nmyr",
+      "nnrg",
+      "nhyc",
+      "nmpe",
+      "Hvsh",
+    }
+
+  unitList.neutralHostileUnitList =
+    {
+      "nanm",
+      "nanb",
+      "nanc",
+      "nanw",
+      "nane",
+      "nano",
+      "nban",
+      "nbrg",
+      "nrog",
+      "nass",
+      "nenf",
+      "nbld",
+      "nbdm",
+      "nbda",
+      "nbdw",
+      "nbds",
+      "nbdo",
+      "ncea",
+      "ncer",
+      "ncim",
+      "ncen",
+      "ncks",
+      "ncnk",
+      "nscb",
+      "nsc2",
+      "nsc3",
+      "ndtr",
+      "ndtp",
+      "ndtt",
+      "ndtb",
+      "ndth",
+      "ndtw",
+      "ndrf",
+      "ndrm",
+      "ndrp",
+      "ndrw",
+      "ndrh",
+      "ndrd",
+      "ndrs",
+      "nrdk",
+      "nrdr",
+      "nrmw",
+      "nbdr",
+      "nbdk",
+      "nbwm",
+      "nbzw",
+      "nbzk",
+      "nbzd",
+      "ngrw",
+      "ngdk",
+      "ngrd",
+      "nadw",
+      "nadk",
+      "nadr",
+      "nnht",
+      "nndk",
+      "nndr",
+      "nrel",
+      "nele",
+      "nsel",
+      "nelb",
+      "nenc",
+      "nenp",
+      "nepl",
+      "ners",
+      "nerd",
+      "nerw",
+      "nfor",
+      "nfot",
+      "nfod",
+      "nfgu",
+      "nfgb",
+      "nfov",
+      "npfl",
+      "nfel",
+      "npfm",
+      "nftr",
+      "nfsp",
+      "nftt",
+      "nftb",
+      "nfsh",
+      "nftk",
+      "nfrl",
+      "nfrs",
+      "nfrp",
+      "nfrb",
+      "nfrg",
+      "nfre",
+      "nfra",
+      "ngh1",
+      "ngh2",
+      "nsgn",
+      "nsgh",
+      "nsgb",
+      "nspb",
+      "nspg",
+      "nspr",
+      "nssp",
+      "nsgt",
+      "nsbm",
+      "ngna",
+      "ngns",
+      "ngno",
+      "ngnb",
+      "ngnw",
+      "ngnv",
+      "ngrk",
+      "ngst",
+      "nggr",
+      "narg",
+      "nwrg",
+      "nsgg",
+      "nhar",
+      "ngrr",
+      "nhrw",
+      "nhrh",
+      "nhrq",
+      "nhfp",
+      "nhdc",
+      "nhhr",
+      "nhyh",
+      "nhyd",
+      "nehy",
+      "nahy",
+      "nitr",
+      "nitp",
+      "nitt",
+      "nits",
+      "nith",
+      "nitw",
+      "ninc",
+      "ninm",
+      "nina",
+      "nkob",
+      "nkog",
+      "nkot",
+      "nkol",
+      "nltl",
+      "nthl",
+      "nstw",
+      "nlpr",
+      "nlpd",
+      "nltc",
+      "nlds",
+      "nlsn",
+      "nlkl",
+      "nwiz",
+      "nwzr",
+      "nwzg",
+      "nwzd",
+      "nmgw",
+      "nmgr",
+      "nmgd",
+      "nmam",
+      "nmit",
+      "nmdr",
+      "nmcf",
+      "nmbg",
+      "nmtw",
+      "nmsn",
+      "nmrv",
+      "nmsc",
+      "nmrl",
+      "nmrr",
+      "nmpg",
+      "nmfs",
+      "nmrm",
+      "nmmu",
+      "nspd",
+      "nnwa",
+      "nnwl",
+      "nnwr",
+      "nnws",
+      "nnwq",
+      "nogr",
+      "nomg",
+      "nogm",
+      "nogl",
+      "nowb",
+      "nowe",
+      "nowk",
+      "nplb",
+      "nplg",
+      "nfpl",
+      "nfps",
+      "nfpt",
+      "nfpc",
+      "nfpe",
+      "nfpu",
+      "nrzt",
+      "nrzs",
+      "nqbh",
+      "nrzb",
+      "nrzm",
+      "nrzg",
+      "nrvf",
+      "nrev",
+      "nrvs",
+      "nsrv",
+      "nrvl",
+      "nrvi",
+      "ndrv",
+      "nrvd",
+      "nlrv",
+      "nslh",
+      "nslr",
+      "nslv",
+      "nsll",
+      "nsqt",
+      "nsqe",
+      "nsqo",
+      "nsqa",
+      "nsty",
+      "nsat",
+      "nsts",
+      "nstl",
+      "nsth",
+      "nsko",
+      "nsog",
+      "nsoc",
+      "nslm",
+      "nslf",
+      "nsln",
+      "nsra",
+      "nsrh",
+      "nsrn",
+      "nsrw",
+      "ndqn",
+      "ndwv",
+      "ndqt",
+      "ndqp",
+      "ndqs",
+      "ntrh",
+      "ntrs",
+      "ntrt",
+      "ntrg",
+      "ntrd",
+      "ntkf",
+      "ntka",
+      "ntkh",
+      "ntkt",
+      "ntkw",
+      "ntks",
+      "ntkc",
+      "nubk",
+      "nubr",
+      "nubw",
+      "nvdl",
+      "nvdw",
+      "nvdg",
+      "nvde",
+      "nwen",
+      "nwnr",
+      "nwns",
+      "nwna",
+      "nwwf",
+      "nwlt",
+      "nwwg",
+      "nwlg",
+      "nwwd",
+      "nwld",
+      "nska",
+      "nskf",
+      "nskm",
+      "nbal",
+      "ninf",
+      "ndrj",
+      "ndmu",
+      "nskg",
+      "njg1",
+      "njga",
+      "njgb",
+      "Nmsr", -- There's a murloc hero??
+      "ndrl",
+      "ndrt",
+      "ndrn",
+      "ngow",
+      "ngos",
+      "nggd",
+      "nggg",
+      "nggm",
+      "nwzw",
+      "nogo",
+      "nogn",
+      "noga",
+      "ndsa",
+      "nglm",
+      "nfgl",
+    }
+
+  unitList.neutralPassiveUnitList =
+    {
+      "nalb",
+      "nech",
+      "ncrb",
+      "ndog",
+      "ndwm",
+      "nfbr",
+      "nfro",
+      "nhmc",
+      "npng",
+      "npig",
+      "necr",
+      "nrac",
+      "nrat",
+      "nsea",
+      "nshe",
+      "nskk",
+      "nsno",
+      "uder",
+      "uvul",
+      "nske",
+      "Nalc",
+      "Nswt",
+      "Nngs",
+      "Ntin",
+      "Nbst",
+      "nbpm",
+      "Nbrn",
+      "Nfir",
+      "Nplh",
+      "zcso",
+      "zhyd",
+      "zmar",
+      "zjug",
+      "zzrg",
+      "nvlk",
+      "nvk2",
+      "ngog",
+      "nvlw",
+      "nvl2",
+      "nvil",
+      "ncat",
+      "Naka",
+    }
+
+  unitList.allRacesUnitList = {}
+  unitList.allUnitList = {}
+
+  -- Merge the four races into one table:
+  unitList.allRacesUnitList = utility.TableMerge(unitList.allRacesUnitList, unitList.humanUnitList)  unitList.allRacesUnitList = utility.TableMerge(unitList.allRacesUnitList, unitList.orcUnitList)
+  unitList.allRacesUnitList = utility.TableMerge(unitList.allRacesUnitList, unitList.undeadUnitList)
+  unitList.allRacesUnitList = utility.TableMerge(unitList.allRacesUnitList, unitList.nightElfUnitList)
+
+  -- Merge every list into one big list
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.allRacesUnitList)
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.humanCampaignUnitList)
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.orcCampaignUnitList)
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.undeadCampaignUnitList)
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.nightElfCampaignUnitList)
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.neutralHostileUnitList)
+  unitList.allUnitList = utility.TableMerge(unitList.allUnitList, unitList.neutralPassiveUnitList)
+
+  return unitList
 end
 function map.Commands_Create(wc3api)
   local commands = {}
@@ -1302,7 +2108,7 @@ function map.Clock_Create()
     local timeElapsed = clock.TimeElapsed()
 
     timeString = tostring(timeElapsed.hours) .. ":" .. tostring(timeElapsed.minutes) .. ":" .. tostring(timeElapsed.seconds)
-    -- timeString = string.format("-243315840:10:00", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
+    -- timeString = string.format("-243314816:10:00", timeElapsed.hours, timeElapsed.minutes, timeElapsed.seconds) -- This doesn't work in wc3 for some reason
 
     return timeString
   end
@@ -1879,8 +2685,9 @@ function map.DebugTools_Create(wc3api, logging, players, commands, utility, colo
   local visibleCommand = {}
   visibleCommand.activator = "-visible"
   visibleCommand.users = players.AUTHENTICATED_PLAYERS
-  function visibleCommand.Visible()
-    
+  function visibleCommand.Handler()
+    local commandingPlayer = wc3api.GetTriggerPlayer()
+    wc3api.FogModifierStart(wc3api.CreateFogModifierRect(commandingPlayer, wc3api.constants.FOG_OF_WAR_VISIBLE, wc3api.GetWorldBounds(), true, true))
   end
 
 
@@ -1889,6 +2696,7 @@ function map.DebugTools_Create(wc3api, logging, players, commands, utility, colo
   commands.Add(setWoodCommand)
   commands.Add(killUnitCommand)
   commands.Add(removeUnitCommand)
+  commands.Add(visibleCommand)
 
   return debugTools
 end
@@ -2238,8 +3046,20 @@ function map.RealWc3Api_Create()
 
   realWc3Api.constants.CAMERA_FIELD_TARGET_DISTANCE = CAMERA_FIELD_TARGET_DISTANCE
 
+  realWc3Api.constants.FOG_OF_WAR_MASKED = FOG_OF_WAR_MASKED
+  realWc3Api.constants.FOG_OF_WAR_FOGGED = FOG_OF_WAR_FOGGED
+  realWc3Api.constants.FOG_OF_WAR_VISIBLE = FOG_OF_WAR_VISIBLE
+
   function realWc3Api.BJDebugMsg(msg)
     return BJDebugMsg(msg)
+  end
+
+  function realWc3Api.FogModifierStart(whichFogModifier)
+    return FogModifierStart(whichFogModifier)
+  end
+
+  function realWc3Api.CreateFogModifierRadius(forWhichPlayer, whichState, centerx, centerY, radius, useSharedVision, afterUnits)
+    return CreateFogModifierRadius(forWhichPlayer, whichState, centerx, centerY, radius, useSharedVision, afterUnits)
   end
 
   function realWc3Api.GetRandomInt(lowBound, highBound)
@@ -2680,6 +3500,10 @@ function map.RealWc3Api_Create()
     return GetSpellTargetUnit()
   end
 
+  function realWc3Api.GetFoodUsed(unitId)
+    return GetFoodUsed(unitId)
+  end
+
   function realWc3Api.BlzSetUnitName(whichUnit, name)
     return BlzSetUnitName(whichUnit, name)
   end
@@ -2992,6 +3816,10 @@ function map.RealWc3Api_Create()
     return BlzSetUnitMaxHP(whichUnit, hp)
   end
 
+  function realWc3Api.SetUnitLifePercentBJ(whichUnit, percent)
+    return SetUnitLifePercentBJ(whichUnit, percent)
+  end
+
   function realWc3Api.BlzGetUnitMaxHP(whichUnit)
     return BlzGetUnitMaxHP(whichUnit)
   end
@@ -3002,6 +3830,14 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.IsHeroUnitId(unitId)
     return IsHeroUnitId(unitId)
+  end
+
+  function realWc3Api.SetUnitCreepGuard(whichUnit, creepGuard)
+    return SetUnitCreepGuard(whichUnit, creepGuard)
+  end
+
+  function realWc3Api.RemoveGuardPosition(hUnit)
+    return RemoveGuardPosition(hUnit)
   end
 
   function realWc3Api.GetObjectName(objectId)
@@ -3050,6 +3886,14 @@ function map.RealWc3Api_Create()
 
   function realWc3Api.GetEnumUnit()
     return GetEnumUnit()
+  end
+
+  function realWc3Api.BlzGroupGetSize(whichGroup)
+    return BlzGroupGetSize(whichGroup)
+  end
+
+  function realWc3Api.BlzGroupUnitAt(whichGroup, index)
+    return BlzGroupUnitAt(whichGroup, index)
   end
 
   function realWc3Api.GroupEnumUnitsOfType(whichGroup, unitname, filter)
@@ -3377,6 +4221,35 @@ function map.Triggers_Create(wc3api)
 
   return triggers
 end
+function map.Sounds_Create(wc3api)
+  local sounds = {}
+
+  -- TODO: Implement music and sounds using the wc3 sound api
+  -- TODO: Add commands to get current music info
+  sounds.effects = {}
+
+  sounds.effects.kidlaughing = wc3api.CreateSoundFromLabel("H01VillagerC37", false, false, false, 10000, 10000)
+
+  sounds.music = {}
+
+  sounds.victoryDialogSound = wc3api.CreateSoundFromLabel("QuestCompleted", false, false, false, 10000, 10000)
+  sounds.music.tensionSong = wc3api.CreateSoundFromLabel("Tension", false, false, false, 10000, 10000)
+  
+
+  function sounds.PlayTension()
+    wc3api.StartSound(sounds.music.tensionSong)
+    -- wc3api.StartSound(sounds.victoryDialogSound)
+    -- wc3api.StartSound(sounds.effects.kidlaughing)
+  end
+
+  function sounds.PlayKidLaughing()
+    -- wc3api.StartSound(sounds.music.tensionSong)
+    -- wc3api.StartSound(sounds.victoryDialogSound)
+    wc3api.StartSound(sounds.effects.kidlaughing)
+  end
+
+  return sounds
+end
 -- Hollow Arena
 
 function map.UnitTests()
@@ -3384,7 +4257,6 @@ function map.UnitTests()
   map.Wagons_Tests(testFramework)
   map.Contestable_Tests(testFramework)
   map.Obelisk_Tests(testFramework)
-  map.Terror_Tests(testFramework)
   xpcall(testFramework.TestRunner, print)
 end
 
