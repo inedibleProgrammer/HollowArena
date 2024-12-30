@@ -94,7 +94,29 @@ function TestInit()
           local u = wc3api.CreateUnit(wc3api.Player(0), wc3api.FourCC("hkni"), testregion3.x, testregion3.y, 0)
           return u
         end
-        local terror = map.Terror_Create(1, "hkni", 0, 0, wc3api, FindDummyUnit)
+
+        -- TODO: Put this somewhere else and make it so terrors can have
+        --       their "find target" function updated
+        local function TerrorFindTarget()
+          -- Find a random player that has at least 1 unit
+          local g = wc3api.CreateGroup()
+          local playerID = 0
+          local groupSize = 0
+          repeat -- TODO: Keep a list of living players to optimize this
+            playerID = wc3api.GetRandomInt(0, 11)
+            wc3api.GroupEnumUnitsOfPlayer(g, wc3api.Player(playerID), wc3api.constants.NO_FILTER)
+            groupSize = wc3api.BlzGroupGetSize(g)
+          until (groupSize > 0)
+
+
+          -- Find a random unit of that player to attack
+          local randIndex = wc3api.GetRandomInt(0, groupSize)
+          local unitTarget = wc3api.BlzGroupUnitAt(g, randIndex)
+          wc3api.DestroyGroup(g)
+          return unitTarget
+        end
+        local terror = map.Terror_Create(wc3api, TerrorFindUnit)
+        terror.Spawn(1, "hkni", 0, 0)
         terror.Update()
       end
       TestTerror()
