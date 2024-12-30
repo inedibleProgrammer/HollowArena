@@ -17,10 +17,14 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
       local thePlayer = wc3api.GetTriggerPlayer()
       local playerName = wc3api.GetPlayerName(thePlayer)
 
+      wc3api.BJDebugMsg("P1")
+
       for _,wagonData in pairs(wagons.list) do
-        if(wagonData.built == true) then return end
+        -- if(wagonData.built == true) then return end
         if(thePlayer == wagonData.playerref) then
+          wc3api.BJDebugMsg("P2")
           if(wc3api.IsUnitInRange(wagonData.unit, theBuilding, 120)) then
+            wc3api.BJDebugMsg("P3")
             local baseID = wc3api.GetUnitTypeId(theBuilding)
             local basex = wc3api.GetUnitX(theBuilding)
             local basey = wc3api.GetUnitY(theBuilding)
@@ -31,6 +35,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             wc3api.CreateUnit(wagonData.playerref, baseID, basex, basey, baseface)
             wagonData.built = true
 
+            wc3api.BJDebugMsg("P4")
+
             if baseID == wc3api.FourCC("htow") then
               wagonData.race = "human"
             elseif baseID == wc3api.FourCC("ogre") then
@@ -40,6 +46,8 @@ function map.Wagons_Create(wc3api, players, commands, logging, editor)
             elseif baseID == wc3api.FourCC("etol") then
               wagonData.race = "elf"
             end
+
+            wc3api.BJDebugMsg("P5")
 
 
             wagonLog.message = playerName .. " builds town hall" .. " and is race " .. wagonData.race

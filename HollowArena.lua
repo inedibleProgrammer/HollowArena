@@ -5,7 +5,8 @@ function map.HollowArena_Initialize()
   local utility = map.Utility_Create()
   local commands = map.Commands_Create(wc3api)
   local clock = map.Clock_Create()
-  local authenticatedNames = {"WorldEdit", "MasterLich#11192", "MagicDoor#1685"}
+  -- local authenticatedNames = {"WorldEdit", "MasterLich#11192", "MagicDoor#1685"}
+  local authenticatedNames = {"WorldEdit", "MasterLich#11192"}
   local players = map.Players_Create(wc3api, commands, colors, authenticatedNames, utility)
   local gameClock = map.GameClock_Create(wc3api, clock, commands, players)
   local logging = map.Logging_Create(wc3api, gameClock, commands, players)
@@ -16,7 +17,17 @@ function map.HollowArena_Initialize()
 
   -- game.worldEdit = players.GetPlayerByName("WorldEdit")
   -- logging.SetPlayerOptionByID(game.worldEdit.id, logging.types.ALL)
-  local gamestate = map.GameState_Create
+  local gamestate = map.GameState_Create()
+  local unitList = map.UnitList_Create(utility)
+
+  local sounds = map.Sounds_Create(wc3api)
+  sounds.PlayTension()
+
+  local function PlaySounds()
+    sounds.PlayKidLaughing()
+  end
+
+  triggers.CreatePeriodicTrigger(60, PlaySounds)
 
   local function MeleeSetup()
     wc3api.MeleeStartingVisibility()
@@ -38,12 +49,10 @@ function map.HollowArena_Initialize()
 
   xpcall(MeleeSetup, print)
 
-
-
   local startingResources = map.StartingResources_Create(wc3api, players)
   local wagons = map.Wagons_Create(wc3api, players, commands, logging, editor)
   local wormwood = map.Wormwood_Create(wc3api, editor, players)
   local contestableManager = map.ContestableManager_Create(editor, unitManager, wc3api, triggers, logging, wagons)
-  local obeliskManager = map.ObeliskManager_Create(wc3api, gamestate, editor, triggers, terror)
+  local obeliskManager = map.ObeliskManager_Create(wc3api, gamestate, editor, triggers, unitList)
 end
 

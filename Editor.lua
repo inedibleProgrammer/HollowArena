@@ -23,6 +23,7 @@ function map.Editor_Create()
   editor.contestedShipyardRect8 = gg_rct_contestedShipyardRect8
   editor.contestedShipyardRect9 = gg_rct_contestedShipyardRect9
   editor.contestedShipyardRect10 = gg_rct_contestedShipyardRect10
+  editor.contestedShipyardRect11 = gg_rct_contestedShipyardRect11
   table.insert(editor.contestableRects, editor.contestedShipyardRect1)
   table.insert(editor.contestableRects, editor.contestedShipyardRect2)
   table.insert(editor.contestableRects, editor.contestedShipyardRect3)
@@ -33,6 +34,7 @@ function map.Editor_Create()
   table.insert(editor.contestableRects, editor.contestedShipyardRect8)
   table.insert(editor.contestableRects, editor.contestedShipyardRect9)
   table.insert(editor.contestableRects, editor.contestedShipyardRect10)
+  table.insert(editor.contestableRects, editor.contestedShipyardRect11)
 
   editor.eastSeaRect = gg_rct_eastSeaRect
   editor.frontFieldRect = gg_rct_frontFieldRect
